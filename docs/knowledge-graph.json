@@ -1,0 +1,592 @@
+{
+  "schema_version": 1,
+  "generated": "2026-10-29",
+  "project": {
+    "name": "Grocery Ledger",
+    "package": "dev.groceryledger",
+    "version": "1.1.0",
+    "version_code": 2,
+    "status": "v1 implemented; physical-device QA pending",
+    "repository": "https://github.com/chethankumarsk/personal_grocery_cost_tracker_phone_app",
+    "min_sdk": 26,
+    "target_sdk": 36,
+    "stack": ["Kotlin", "Jetpack Compose", "Material 3", "Room", "DataStore", "Coroutines"],
+    "last_verified": "42 JVM tests passed; lint 0 errors; signed release APK built"
+  },
+  "read_order": [
+    "AGENTS.md",
+    "docs/KNOWLEDGE_GRAPH.md",
+    "REQUIREMENTS.md",
+    "docs/ARCHITECTURE.md",
+    "README.md",
+    "docs/RELEASING.md"
+  ],
+  "status_values": {
+    "done": "Implemented and verified where verification is available",
+    "partial": "Implemented but a documented optional or validation item is outstanding",
+    "pending": "Not implemented yet",
+    "deferred": "Explicitly out of the current release"
+  },
+  "nodes": [
+    {
+      "id": "app",
+      "type": "application",
+      "label": "Grocery Ledger",
+      "status": "done",
+      "path": "app/src/main",
+      "summary": "Offline-first INR grocery expense tracker with a calendar, item entries, totals, autocomplete, CSV backup, and a manual GitHub update check."
+    },
+    {
+      "id": "entry.activity",
+      "type": "file",
+      "label": "MainActivity",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/MainActivity.kt",
+      "summary": "Single activity; enables edge-to-edge and hosts the Compose tree."
+    },
+    {
+      "id": "app.container",
+      "type": "file",
+      "label": "AppContainer",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/AppContainer.kt",
+      "summary": "Manual dependency wiring for Room, repositories, settings, backup, and update checker."
+    },
+    {
+      "id": "vm.main",
+      "type": "component",
+      "label": "MainViewModel",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/ui/MainViewModel.kt",
+      "summary": "Owns selected date/month, totals, day sheet, editor, autocomplete, import preview, update state, and snackbar events."
+    },
+    {
+      "id": "ui.root",
+      "type": "file",
+      "label": "GroceryLedgerApp composable",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/ui/GroceryLedgerApp.kt",
+      "summary": "Theme, navigation between Calendar and Settings, lifecycle refresh, snackbar events, and sheet hosting."
+    },
+    {
+      "id": "ui.calendar",
+      "type": "file",
+      "label": "CalendarScreen",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/ui/calendar/CalendarScreen.kt",
+      "summary": "Month header, summary card, weekday header, six-row day grid, FAB, and day sheet trigger."
+    },
+    {
+      "id": "ui.day-sheet",
+      "type": "file",
+      "label": "DaySheet",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/ui/calendar/DaySheet.kt",
+      "summary": "Selected-day item list, item count, exact total, empty state, and add/edit entry actions."
+    },
+    {
+      "id": "ui.entry-sheet",
+      "type": "file",
+      "label": "EntrySheet",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/ui/entry/EntrySheet.kt",
+      "summary": "Add/edit/delete form, autocomplete suggestions, last-price chip, date picker, discard confirmation, and save actions."
+    },
+    {
+      "id": "ui.settings",
+      "type": "file",
+      "label": "SettingsScreen",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/ui/settings/SettingsScreen.kt",
+      "summary": "Week start, theme, CSV export/import, delete all, update check, about, and confirmation/preview dialogs."
+    },
+    {
+      "id": "ui.theme",
+      "type": "file",
+      "label": "Compose theme",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/ui/theme/Theme.kt",
+      "summary": "Material 3 light/dark theme, dynamic color on Android 12+, green fallback, and system-bar appearance."
+    },
+    {
+      "id": "domain.money",
+      "type": "module",
+      "label": "Money",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/domain/money/Money.kt",
+      "summary": "Integer-paise parsing, INR Indian grouping, compact cell formatting, CSV formatting, and the ₹10,00,000 entry cap."
+    },
+    {
+      "id": "domain.dates",
+      "type": "module",
+      "label": "DateRanges",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/domain/date/DateRanges.kt",
+      "summary": "Monday/Sunday week ranges, calendar months, 42-day grids, labels, and UTC date-picker conversion."
+    },
+    {
+      "id": "domain.suggestions",
+      "type": "module",
+      "label": "SuggestionRanker",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/domain/suggestion/SuggestionRanker.kt",
+      "summary": "Pure prefix → word-start → contains ranking, then usage, recency, and alphabetical tie-breaks."
+    },
+    {
+      "id": "domain.models",
+      "type": "module",
+      "label": "Domain models",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/domain/model",
+      "summary": "Expense, daily totals, item suggestions, spending summary, app settings, week start, and theme mode."
+    },
+    {
+      "id": "domain.repositories",
+      "type": "module",
+      "label": "Repository interfaces",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/domain/repository/ExpenseRepository.kt",
+      "summary": "Expense and settings contracts used by the ViewModel and implemented by the data layer."
+    },
+    {
+      "id": "data.local",
+      "type": "module",
+      "label": "Room storage and offline repository",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/data/local",
+      "summary": "Entries, daily totals, suggestions, CRUD, transactions, undo restore, import rebuild, and clear-all."
+    },
+    {
+      "id": "data.catalog",
+      "type": "data",
+      "label": "item_catalog cache",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/data/local/Daos.kt",
+      "summary": "Derived suggestion/last-price table; updated transactionally and rebuildable from entries."
+    },
+    {
+      "id": "data.csv",
+      "type": "module",
+      "label": "CSV backup format",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/data/csv",
+      "summary": "Version-1 writer/parser, BOM, RFC 4180 quoting, UUID dedupe, row validation, and newer-version rejection."
+    },
+    {
+      "id": "data.backup",
+      "type": "module",
+      "label": "CSV file-picker integration",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/data/backup/CsvBackupManager.kt",
+      "summary": "Reads/writes ContentResolver streams on IO and turns analysis into a repository import."
+    },
+    {
+      "id": "data.settings",
+      "type": "module",
+      "label": "DataStore settings",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/data/settings/DataStoreSettingsRepository.kt",
+      "summary": "Persists week start and theme with safe defaults for missing or unknown values."
+    },
+    {
+      "id": "data.update",
+      "type": "module",
+      "label": "GitHub update checker",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/data/update",
+      "summary": "Manual GitHub Releases API check, semver comparison, release metadata parsing, timeouts, and friendly failures."
+    },
+    {
+      "id": "feature.calendar",
+      "type": "feature",
+      "label": "Calendar and period navigation",
+      "status": "done",
+      "path": "ui/calendar",
+      "summary": "Current-month grid, per-day totals, Today, previous/next month, adjacent-month days, and future-date blocking."
+    },
+    {
+      "id": "feature.entries",
+      "type": "feature",
+      "label": "Item entries",
+      "status": "done",
+      "path": "ui/entry",
+      "summary": "Name, amount, date, add/edit/delete, undo, save-and-add-another, validation, and discard handling."
+    },
+    {
+      "id": "feature.totals",
+      "type": "feature",
+      "label": "Day/week/month totals",
+      "status": "done",
+      "path": "domain/date + data/local",
+      "summary": "Exact paise sums for the selected day, its Monday/Sunday week, and its calendar month; live Flow updates."
+    },
+    {
+      "id": "feature.autocomplete",
+      "type": "feature",
+      "label": "Autocomplete",
+      "status": "done",
+      "path": "ui/entry + domain/suggestion",
+      "summary": "Two-character trigger, 120 ms debounce, six ranked suggestions, case/whitespace normalization, and free text."
+    },
+    {
+      "id": "feature.price-memory",
+      "type": "feature",
+      "label": "Last-price memory",
+      "status": "done",
+      "path": "data/catalog + ui/entry",
+      "summary": "Shows the latest price/date per suggestion and lets the user reuse that price with a chip."
+    },
+    {
+      "id": "feature.undo",
+      "type": "feature",
+      "label": "Undo delete",
+      "status": "done",
+      "path": "ui/MainViewModel.kt",
+      "summary": "Five-second snackbar; the event carries its own deleted entry so concurrent deletes cannot undo the wrong one."
+    },
+    {
+      "id": "feature.csv-backup",
+      "type": "feature",
+      "label": "CSV export and import",
+      "status": "done",
+      "path": "data/csv + data/backup + ui/settings",
+      "summary": "User-controlled backup, duplicate-safe merge, preview counts, error lines, format versioning, and restore."
+    },
+    {
+      "id": "feature.update-check",
+      "type": "feature",
+      "label": "Manual update check",
+      "status": "done",
+      "path": "data/update + ui/settings",
+      "summary": "Settings button checks GitHub Releases, compares versions, shows notes, and opens the release page. No automatic polling."
+    },
+    {
+      "id": "feature.settings",
+      "type": "feature",
+      "label": "Settings",
+      "status": "done",
+      "path": "ui/settings",
+      "summary": "Week start, theme, backup/restore, delete all, update check, privacy note, and version display."
+    },
+    {
+      "id": "feature.saved-state",
+      "type": "feature",
+      "label": "State restoration",
+      "status": "partial",
+      "path": "ui/MainViewModel.kt",
+      "summary": "Selected date survives process death via SavedStateHandle; editor drafts survive configuration changes, not process death."
+    },
+    {
+      "id": "req.calendar",
+      "type": "requirement_group",
+      "label": "CAL-1..CAL-9",
+      "status": "partial",
+      "path": "REQUIREMENTS.md",
+      "summary": "Calendar Must items implemented. CAL-9 spend-intensity shading is deferred."
+    },
+    {
+      "id": "req.entries",
+      "type": "requirement_group",
+      "label": "DAY / ENT requirements",
+      "status": "done",
+      "path": "REQUIREMENTS.md",
+      "summary": "Day sheet and add/edit/delete/undo/save-and-add-another requirements implemented."
+    },
+    {
+      "id": "req.autocomplete",
+      "type": "requirement_group",
+      "label": "SUG requirements",
+      "status": "partial",
+      "path": "REQUIREMENTS.md",
+      "summary": "SUG-1..9 implemented; SUG-10 optional recent-item chips deferred."
+    },
+    {
+      "id": "req.totals",
+      "type": "requirement_group",
+      "label": "TOT requirements",
+      "status": "done",
+      "path": "REQUIREMENTS.md",
+      "summary": "Day, week, month, paise arithmetic, formatting, empty state, and midnight refresh implemented."
+    },
+    {
+      "id": "req.data",
+      "type": "requirement_group",
+      "label": "SET / DAT requirements",
+      "status": "done",
+      "path": "REQUIREMENTS.md",
+      "summary": "Settings, persistence, auto backup, versioned CSV, dedupe, import preview, and no-auto-delete implemented."
+    },
+    {
+      "id": "req.settings",
+      "type": "requirement_group",
+      "label": "SET-1..SET-7",
+      "status": "done",
+      "path": "REQUIREMENTS.md",
+      "summary": "Week start, theme, export, import, delete all, about/privacy, and fixed INR implemented."
+    },
+    {
+      "id": "req.updates",
+      "type": "requirement_group",
+      "label": "UPD-1..UPD-6",
+      "status": "done",
+      "path": "REQUIREMENTS.md",
+      "summary": "Manual GitHub Releases check, comparison, notes, browser handoff, and release policy implemented. Automatic checks deferred."
+    },
+    {
+      "id": "req.nfr",
+      "type": "requirement_group",
+      "label": "NFR requirements",
+      "status": "partial",
+      "path": "REQUIREMENTS.md",
+      "summary": "Offline-first, accessibility, localization, SDK, privacy, tests, and size done; device performance/200% font QA pending."
+    },
+    {
+      "id": "req.maintainability",
+      "type": "requirement_group",
+      "label": "MNT requirements",
+      "status": "partial",
+      "path": "REQUIREMENTS.md",
+      "summary": "Layers, docs, versioned data, signing, build/test done; migration test infrastructure awaits the first migration; CI optional."
+    },
+    {
+      "id": "decision.single-module",
+      "type": "decision",
+      "label": "ADR 0001: offline single-module architecture",
+      "status": "done",
+      "path": "docs/adr/0001-offline-single-module.md",
+      "summary": "One app module, package seams, manual DI, pure domain, exported Room schemas, stable signing."
+    },
+    {
+      "id": "decision.csv-format",
+      "type": "decision",
+      "label": "Versioned CSV with stable UUIDs",
+      "status": "done",
+      "path": "docs/ARCHITECTURE.md",
+      "summary": "format_version=1, entry_uid dedupe, merge-only import, RFC 4180, UTF-8 BOM."
+    },
+    {
+      "id": "decision.signing",
+      "type": "decision",
+      "label": "Stable release signing",
+      "status": "done",
+      "path": "README.md",
+      "summary": "Keystore outside the repo; same package/key and increasing versionCode for in-place updates."
+    },
+    {
+      "id": "decision.update-check",
+      "type": "decision",
+      "label": "ADR 0002: GitHub Releases update check",
+      "status": "done",
+      "path": "docs/adr/0002-update-check.md",
+      "summary": "Manual API check, browser handoff, no in-app install, no background polling."
+    },
+    {
+      "id": "test.unit",
+      "type": "test",
+      "label": "JVM test suite",
+      "status": "done",
+      "path": "app/src/test/java/dev/groceryledger",
+      "summary": "42 tests: money, dates, ranking, Room repository, CSV, update parsing/versioning, activity, calendar/settings/add-entry UI."
+    },
+    {
+      "id": "doc.requirements",
+      "type": "doc",
+      "label": "Requirements and status matrix",
+      "status": "done",
+      "path": "REQUIREMENTS.md"
+    },
+    {
+      "id": "doc.readme",
+      "type": "doc",
+      "label": "README",
+      "status": "done",
+      "path": "README.md"
+    },
+    {
+      "id": "doc.architecture",
+      "type": "doc",
+      "label": "Architecture",
+      "status": "done",
+      "path": "docs/ARCHITECTURE.md"
+    },
+    {
+      "id": "doc.releasing",
+      "type": "doc",
+      "label": "Release and update process",
+      "status": "done",
+      "path": "docs/RELEASING.md"
+    },
+    {
+      "id": "doc.knowledge-graph",
+      "type": "doc",
+      "label": "Knowledge graph guide",
+      "status": "done",
+      "path": "docs/KNOWLEDGE_GRAPH.md"
+    },
+    {
+      "id": "doc.agents",
+      "type": "doc",
+      "label": "LLM/developer handoff",
+      "status": "done",
+      "path": "AGENTS.md"
+    },
+    {
+      "id": "external.github-repo",
+      "type": "external",
+      "label": "GitHub repository",
+      "status": "done",
+      "path": "https://github.com/chethankumarsk/personal_grocery_cost_tracker_phone_app",
+      "summary": "Public source repository."
+    },
+    {
+      "id": "external.github-releases",
+      "type": "external",
+      "label": "GitHub Releases API/page",
+      "status": "done",
+      "path": "https://github.com/chethankumarsk/personal_grocery_cost_tracker_phone_app/releases",
+      "summary": "Update source. Currently no releases are published."
+    },
+    {
+      "id": "status.v1",
+      "type": "status",
+      "label": "v1 built",
+      "status": "done",
+      "summary": "Feature set implemented, tests pass, signed release APK built."
+    },
+    {
+      "id": "status.device-qa",
+      "type": "status",
+      "label": "Physical-device QA",
+      "status": "pending",
+      "summary": "Visual, performance, accessibility scaling, and install-over-update checks on a real phone."
+    },
+    {
+      "id": "future.price-history",
+      "type": "future",
+      "label": "Per-item price history",
+      "status": "deferred",
+      "summary": "Chart of prices for an item over time; existing entries already contain the data."
+    },
+    {
+      "id": "future.categories",
+      "type": "future",
+      "label": "Categories and breakdown",
+      "status": "deferred",
+      "summary": "Optional category field plus monthly category analysis."
+    },
+    {
+      "id": "future.budget",
+      "type": "future",
+      "label": "Monthly budget",
+      "status": "deferred",
+      "summary": "A target for the existing month total, with progress."
+    },
+    {
+      "id": "future.quick-add",
+      "type": "future",
+      "label": "Quick-add recent items",
+      "status": "deferred",
+      "summary": "Recent-item chips when the name field is empty."
+    },
+    {
+      "id": "future.widget",
+      "type": "future",
+      "label": "Home-screen widget",
+      "status": "deferred",
+      "summary": "Read-only recent totals or quick add."
+    },
+    {
+      "id": "future.auto-update-check",
+      "type": "future",
+      "label": "Automatic update check",
+      "status": "deferred",
+      "summary": "Optional daily check and non-blocking update notification; requires a privacy/UX decision."
+    }
+  ],
+  "edges": [
+    { "from": "app", "to": "entry.activity", "type": "contains" },
+    { "from": "app", "to": "app.container", "type": "contains" },
+    { "from": "app", "to": "vm.main", "type": "contains" },
+    { "from": "entry.activity", "to": "ui.root", "type": "hosts" },
+    { "from": "entry.activity", "to": "app.container", "type": "uses" },
+    { "from": "ui.root", "to": "vm.main", "type": "observes" },
+    { "from": "ui.root", "to": "ui.calendar", "type": "renders" },
+    { "from": "ui.root", "to": "ui.settings", "type": "renders" },
+    { "from": "ui.calendar", "to": "vm.main", "type": "uses" },
+    { "from": "ui.calendar", "to": "ui.day-sheet", "type": "opens" },
+    { "from": "ui.calendar", "to": "ui.entry-sheet", "type": "opens" },
+    { "from": "ui.day-sheet", "to": "ui.entry-sheet", "type": "opens" },
+    { "from": "ui.entry-sheet", "to": "domain.suggestions", "type": "depends_on" },
+    { "from": "ui.entry-sheet", "to": "domain.money", "type": "depends_on" },
+    { "from": "ui.settings", "to": "vm.main", "type": "uses" },
+    { "from": "ui.settings", "to": "data.update", "type": "triggers" },
+    { "from": "vm.main", "to": "domain.repositories", "type": "depends_on" },
+    { "from": "vm.main", "to": "data.backup", "type": "depends_on" },
+    { "from": "vm.main", "to": "data.update", "type": "depends_on" },
+    { "from": "data.backup", "to": "data.csv", "type": "uses" },
+    { "from": "data.backup", "to": "domain.repositories", "type": "uses" },
+    { "from": "data.local", "to": "domain.repositories", "type": "implements" },
+    { "from": "data.local", "to": "data.catalog", "type": "maintains" },
+    { "from": "data.local", "to": "domain.dates", "type": "uses" },
+    { "from": "data.local", "to": "domain.money", "type": "stores_paise" },
+    { "from": "data.csv", "to": "domain.money", "type": "uses" },
+    { "from": "data.update", "to": "external.github-releases", "type": "queries" },
+    { "from": "data.settings", "to": "domain.repositories", "type": "implements" },
+    { "from": "feature.calendar", "to": "ui.calendar", "type": "implemented_by" },
+    { "from": "feature.calendar", "to": "domain.dates", "type": "depends_on" },
+    { "from": "feature.entries", "to": "ui.entry-sheet", "type": "implemented_by" },
+    { "from": "feature.entries", "to": "domain.money", "type": "depends_on" },
+    { "from": "feature.totals", "to": "domain.dates", "type": "depends_on" },
+    { "from": "feature.totals", "to": "data.local", "type": "depends_on" },
+    { "from": "feature.autocomplete", "to": "domain.suggestions", "type": "depends_on" },
+    { "from": "feature.autocomplete", "to": "data.catalog", "type": "depends_on" },
+    { "from": "feature.price-memory", "to": "data.catalog", "type": "depends_on" },
+    { "from": "feature.price-memory", "to": "ui.entry-sheet", "type": "surfaces_in" },
+    { "from": "feature.undo", "to": "vm.main", "type": "implemented_by" },
+    { "from": "feature.undo", "to": "data.local", "type": "restores_through" },
+    { "from": "feature.csv-backup", "to": "data.csv", "type": "implemented_by" },
+    { "from": "feature.csv-backup", "to": "data.backup", "type": "implemented_by" },
+    { "from": "feature.update-check", "to": "data.update", "type": "implemented_by" },
+    { "from": "feature.update-check", "to": "ui.settings", "type": "surfaces_in" },
+    { "from": "feature.settings", "to": "ui.settings", "type": "implemented_by" },
+    { "from": "feature.settings", "to": "data.settings", "type": "depends_on" },
+    { "from": "feature.saved-state", "to": "vm.main", "type": "implemented_by" },
+    { "from": "feature.calendar", "to": "req.calendar", "type": "implements" },
+    { "from": "feature.entries", "to": "req.entries", "type": "implements" },
+    { "from": "feature.autocomplete", "to": "req.autocomplete", "type": "implements" },
+    { "from": "feature.price-memory", "to": "req.autocomplete", "type": "implements" },
+    { "from": "feature.totals", "to": "req.totals", "type": "implements" },
+    { "from": "feature.csv-backup", "to": "req.data", "type": "implements" },
+    { "from": "feature.settings", "to": "req.settings", "type": "implements" },
+    { "from": "feature.update-check", "to": "req.updates", "type": "implements" },
+    { "from": "feature.undo", "to": "req.entries", "type": "implements" },
+    { "from": "test.unit", "to": "domain.money", "type": "tests" },
+    { "from": "test.unit", "to": "domain.dates", "type": "tests" },
+    { "from": "test.unit", "to": "domain.suggestions", "type": "tests" },
+    { "from": "test.unit", "to": "data.local", "type": "tests" },
+    { "from": "test.unit", "to": "data.csv", "type": "tests" },
+    { "from": "test.unit", "to": "data.update", "type": "tests" },
+    { "from": "test.unit", "to": "ui.root", "type": "tests" },
+    { "from": "req.nfr", "to": "test.unit", "type": "verified_by" },
+    { "from": "decision.single-module", "to": "app", "type": "shapes" },
+    { "from": "decision.csv-format", "to": "feature.csv-backup", "type": "shapes" },
+    { "from": "decision.signing", "to": "app", "type": "secures_updates_for" },
+    { "from": "decision.update-check", "to": "feature.update-check", "type": "shapes" },
+    { "from": "app", "to": "external.github-repo", "type": "published_at" },
+    { "from": "external.github-repo", "to": "external.github-releases", "type": "hosts" },
+    { "from": "doc.requirements", "to": "app", "type": "documents" },
+    { "from": "doc.readme", "to": "app", "type": "documents" },
+    { "from": "doc.architecture", "to": "app", "type": "documents" },
+    { "from": "doc.agents", "to": "app", "type": "documents" },
+    { "from": "doc.knowledge-graph", "to": "app", "type": "documents" },
+    { "from": "doc.releasing", "to": "feature.update-check", "type": "operationalizes" },
+    { "from": "status.v1", "to": "app", "type": "describes" },
+    { "from": "status.device-qa", "to": "app", "type": "blocks" },
+    { "from": "future.price-history", "to": "feature.entries", "type": "future_for" },
+    { "from": "future.categories", "to": "feature.entries", "type": "future_for" },
+    { "from": "future.budget", "to": "feature.totals", "type": "future_for" },
+    { "from": "future.quick-add", "to": "feature.autocomplete", "type": "future_for" },
+    { "from": "future.widget", "to": "feature.totals", "type": "future_for" },
+    { "from": "future.auto-update-check", "to": "feature.update-check", "type": "future_for" }
+  ]
+}

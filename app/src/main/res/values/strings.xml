@@ -1,0 +1,138 @@
+<resources>
+    <string name="app_name" translatable="false">Grocery Ledger</string>
+
+    <string name="settings">Settings</string>
+    <string name="back">Back</string>
+    <string name="close">Close</string>
+    <string name="today">Today</string>
+    <string name="previous_month">Previous month</string>
+    <string name="next_month">Next month</string>
+
+    <string name="add_item">Add item</string>
+    <string name="add_entry">Add entry</string>
+    <string name="edit_entry">Edit entry</string>
+    <string name="item_name">Item name</string>
+    <string name="item_name_hint">e.g. Milk</string>
+    <string name="amount">Amount</string>
+    <string name="amount_hint">0</string>
+    <string name="currency_symbol">₹</string>
+    <string name="date">Date</string>
+    <string name="select_date">Select date</string>
+    <string name="change_date">Change date</string>
+    <string name="save">Save</string>
+    <string name="saving">Saving…</string>
+    <string name="save_and_add_another">Save &amp; add another</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="ok">OK</string>
+    <string name="discard">Discard</string>
+    <string name="discard_changes_title">Discard entry?</string>
+    <string name="discard_changes_message">Your changes will be lost.</string>
+
+    <string name="error_name_required">Enter an item name.</string>
+    <string name="error_name_too_long">Keep the name to 80 characters or fewer.</string>
+    <string name="error_amount_required">Enter an amount.</string>
+    <string name="error_amount_invalid">Enter a valid amount greater than ₹0.</string>
+    <string name="error_amount_too_large">The amount cannot exceed ₹10,00,000.</string>
+
+    <string name="last_paid_on">Last paid %1$s on %2$s</string>
+    <string name="use_last_price">Use %1$s</string>
+    <string name="previous_items">Previous items</string>
+    <plurals name="items_count">
+        <item quantity="one">%d item</item>
+        <item quantity="other">%d items</item>
+    </plurals>
+
+    <string name="no_items_title">No items on this day</string>
+    <string name="no_items_message">Add the first item to start tracking this day.</string>
+    <string name="day_total">Total</string>
+
+    <string name="summary_day">Day</string>
+    <string name="summary_week">Week</string>
+    <string name="summary_month">Month</string>
+
+    <string name="calendar_day_description">%1$s, total %2$s, %3$s</string>
+    <string name="calendar_day_empty_description">%1$s, no spending</string>
+    <string name="edit_item_description">Edit %1$s, %2$s</string>
+
+    <string name="settings_general">General</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_data">Data</string>
+    <string name="settings_updates">Updates</string>
+    <string name="settings_about">About</string>
+    <string name="week_starts_on">Week starts on</string>
+    <string name="week_start_description">Used for calendar columns and weekly totals.</string>
+    <string name="monday">Monday</string>
+    <string name="sunday">Sunday</string>
+    <string name="theme">Theme</string>
+    <string name="theme_system">System</string>
+    <string name="theme_light">Light</string>
+    <string name="theme_dark">Dark</string>
+
+    <string name="backup_description">Export a CSV you can keep, or restore a previous backup.</string>
+    <string name="export_csv">Export CSV</string>
+    <string name="import_csv">Import CSV</string>
+    <string name="export_failed">Could not export the backup.</string>
+    <string name="import_title">Import backup</string>
+    <string name="import_preview_summary">New: %1$d · Duplicates: %2$d · Invalid: %3$d</string>
+    <string name="import_confirm">Import</string>
+    <string name="import_errors_heading">Rows that could not be imported:</string>
+    <string name="import_error_line">Line %1$d: %2$s</string>
+    <string name="import_error_more">and %1$d more</string>
+    <string name="import_no_new">No new entries to import.</string>
+    <string name="import_summary">Added %1$d, skipped %2$d duplicates, %3$d invalid</string>
+    <string name="import_failed_title">Import failed</string>
+    <string name="import_unreadable">Could not read this file.</string>
+    <string name="import_bad_header">This file is not a Grocery Ledger backup.</string>
+    <string name="import_newer_version">This backup was created by a newer version of Grocery Ledger. Update the app and try again.</string>
+    <string name="import_reason_invalid_uid">Invalid entry ID</string>
+    <string name="import_reason_invalid_date">Invalid date</string>
+    <string name="import_reason_future_date">Date is in the future</string>
+    <string name="import_reason_invalid_name">Invalid item name</string>
+    <string name="import_reason_invalid_amount">Invalid amount</string>
+    <string name="import_reason_column_count">Wrong number of columns</string>
+    <string name="import_reason_invalid_version">Unsupported row version</string>
+
+    <string name="delete_all_data">Delete all data</string>
+    <string name="delete_all_title">Delete all data?</string>
+    <string name="delete_all_message">This permanently deletes every entry and suggestion. Export a backup first if you may need it. This cannot be undone.</string>
+    <string name="delete_all_confirm">Delete everything</string>
+    <string name="export_first">Export backup first</string>
+    <string name="delete_all_success">All data deleted.</string>
+    <string name="delete_all_failed">Could not delete the data.</string>
+
+    <string name="update_check_description">Check GitHub Releases for a newer version. This is the only feature that uses the internet, and only when you tap the button.</string>
+    <string name="check_for_updates">Check for updates</string>
+    <string name="checking_for_updates">Checking…</string>
+    <string name="current_version">Current version %1$s</string>
+    <string name="update_available_title">Update available</string>
+    <string name="update_available_message">Version %1$s is available. You have %2$s.</string>
+    <string name="update_release_notes">Release notes</string>
+    <string name="update_open_page">Open release page</string>
+    <string name="update_later">Later</string>
+    <string name="update_open_hint">The release page opens in your browser. Download the signed APK and install it over this app.</string>
+    <string name="update_up_to_date_title">You\'re up to date</string>
+    <string name="update_up_to_date_message">You have the latest version (%1$s).</string>
+    <string name="update_no_releases_title">No releases yet</string>
+    <string name="update_no_releases_message">There are no published releases to compare against yet. Check back after the first GitHub release is published.</string>
+    <string name="update_failed_title">Could not check for updates</string>
+    <string name="update_failed_network">Check your internet connection and try again.</string>
+    <string name="update_failed_rate_limited">GitHub\'s update-check limit was reached. Try again later.</string>
+    <string name="update_failed_server">The update server returned an unexpected response. Try again later.</string>
+    <string name="update_try_again">Try again</string>
+
+    <string name="about_privacy">Grocery Ledger works offline. The only network feature is the update check, which contacts GitHub only when you tap Check for updates. Your spending data stays on this device; Android system backup may include app data if you have backup enabled.</string>
+    <string name="version_label">Version %1$s</string>
+
+    <string name="entry_deleted">Deleted %1$s (%2$s)</string>
+    <string name="entry_restored">Entry restored.</string>
+    <string name="undo">Undo</string>
+    <string name="save_failed">Could not save the entry.</string>
+    <string name="delete_failed">Could not delete the entry.</string>
+    <string name="restore_failed">Could not restore the entry.</string>
+
+    <plurals name="exported_entries">
+        <item quantity="one">Exported %d entry.</item>
+        <item quantity="other">Exported %d entries.</item>
+    </plurals>
+</resources>

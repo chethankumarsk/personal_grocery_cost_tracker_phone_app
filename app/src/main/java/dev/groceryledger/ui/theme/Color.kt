@@ -1,0 +1,31 @@
+package dev.groceryledger.ui.theme
+
+import androidx.compose.ui.graphics.Color
+
+val GreenPrimaryLight = Color(0xFF2F6B4F)
+val GreenOnPrimaryLight = Color(0xFFFFFFFF)
+val GreenPrimaryContainerLight = Color(0xFFB4F1CE)
+val GreenOnPrimaryContainerLight = Color(0xFF002113)
+val GreenSecondaryLight = Color(0xFF4E6355)
+val GreenTertiaryLight = Color(0xFF3B6470)
+val BackgroundLight = Color(0xFFF7FBF6)
+val SurfaceLight = Color(0xFFF7FBF6)
+val SurfaceVariantLight = Color(0xFFDCE5DC)
+val OnSurfaceLight = Color(0xFF191D19)
+val OnSurfaceVariantLight = Color(0xFF414942)
+val OutlineLight = Color(0xFF717971)
+val ErrorLight = Color(0xFFBA1A1A)
+
+val GreenPrimaryDark = Color(0xFF98D5B3)
+val GreenOnPrimaryDark = Color(0xFF003824)
+val GreenPrimaryContainerDark = Color(0xFF14523A)
+val GreenOnPrimaryContainerDark = Color(0xFFB4F1CE)
+val GreenSecondaryDark = Color(0xFFB5CCB9)
+val GreenTertiaryDark = Color(0xFFA3CDDB)
+val BackgroundDark = Color(0xFF0F1511)
+val SurfaceDark = Color(0xFF0F1511)
+val SurfaceVariantDark = Color(0xFF414942)
+val OnSurfaceDark = Color(0xFFDFE4DD)
+val OnSurfaceVariantDark = Color(0xFFC0C9C0)
+val OutlineDark = Color(0xFF8B938B)
+val ErrorDark = Color(0xFFFFB4AB)
