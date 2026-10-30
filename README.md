@@ -86,13 +86,70 @@ Outputs:
 
 - Debug: `app/build/outputs/apk/debug/app-debug.apk` (package suffix `.debug`, so it can coexist with release builds).
 - Release: `app/build/outputs/apk/release/app-release.apk` (package `dev.groceryledger`).
-- A convenient signed copy is also at `dist/GroceryLedger-1.3.1-release.apk` with a checksum in `dist/README.txt`.
+- A convenient signed copy is also at `dist/GroceryLedger-1.3.1-release.apk`, with its checksum in `dist/README.txt` and `dist/GroceryLedger-1.3.1-release.apk.sha256`.
 
 Install on a connected phone with USB debugging:
 
 ```powershell
 adb install -r app/build/outputs/apk/release/app-release.apk
 ```
+
+**Play Protect note:** this app is sideloaded and can install its own updates, so Android may show a warning even for a genuine build. See [Play Protect and sideload warnings](#play-protect-and-sideload-warnings) for verification steps before installing.
+
+## Play Protect and sideload warnings
+
+Grocery Ledger is distributed as a signed APK on GitHub, not through Google Play. Google Play Protect may show **“App may be harmful”**, **“Unsafe app blocked”**, or a generic scan warning when installing it. That is a reputation/sideload heuristic, not a malware verdict. It happens because:
+
+- the app is not distributed or Play-signed by Google Play;
+- the signing certificate is new and has little install history;
+- the app requests `REQUEST_INSTALL_PACKAGES` so it can install its own updates. Self-updating apps are treated as higher risk by Play Protect, even when every update is verified.
+
+The app has no analytics, ads, accounts, or app server. Spending data stays on-device, and network use is limited to the GitHub update check/download that you start. In-app installation is optional; **Open release page** remains available if you prefer not to grant install permission.
+
+### Verify the APK before installing
+
+Download only from this repository’s **Releases** page, never from a mirror, forwarded file, or messaging app. From 1.3.1 onward, release assets include the APK and a matching `.sha256` file.
+
+PowerShell:
+
+```powershell
+Get-FileHash .\GroceryLedger-1.3.1-release.apk -Algorithm SHA256
+```
+
+Linux/macOS:
+
+```bash
+sha256sum -c GroceryLedger-1.3.1-release.apk.sha256
+```
+
+Verify the signing certificate (the path to `apksigner` depends on your Android SDK):
+
+```powershell
+apksigner verify --print-certs .\GroceryLedger-1.3.1-release.apk
+```
+
+The signing certificate SHA-256 is stable across releases:
+
+```text
+2d05264a172287b9f2eb022fe30c7cc30ab3c813ace9e8dfc524d49a0ffbf90f
+```
+
+For **1.3.1**, the APK SHA-256 is:
+
+```text
+1DDA3F5125D157CB5BCE222135047D8CCA0B130798AA30D519F31C9930071F97
+```
+
+The package must be `dev.groceryledger` with versionCode `8` and versionName `1.3.1`. If the hash or certificate does not match, stop and re-download from the Releases page.
+
+### If Play Protect warns or blocks the install
+
+1. Tap **More details** → **Install anyway** if that option is shown.
+2. If the install is blocked with no bypass, temporarily open **Play Store → profile → Play Protect → gear → Scan apps with Play Protect**, turn scanning off, install, then turn it back on and run a scan.
+3. On Android 13+, if **Install unknown apps** is greyed out for Grocery Ledger, open **Settings → Apps → Grocery Ledger → ⋮ → Allow restricted settings**, then retry.
+4. After installing, re-enable Play Protect. Do not leave it disabled permanently.
+
+There is no per-app allowlist, so Play Protect may warn again after an in-app update. The hash and certificate checks above are the reliable way to confirm that a build came from this project.
 
 ## Signing and updates
 

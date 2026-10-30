@@ -41,6 +41,14 @@ Copy-Item app\build\outputs\apk\release\app-release.apk `
   dist\GroceryLedger-1.3.1-release.apk
 ```
 
+Generate the checksum file published beside the APK:
+
+```powershell
+$hash = (Get-FileHash dist\GroceryLedger-1.3.1-release.apk -Algorithm SHA256).Hash.ToLower()
+"$hash  GroceryLedger-1.3.1-release.apk" |
+  Set-Content -Encoding ascii dist\GroceryLedger-1.3.1-release.apk.sha256
+```
+
 Do **not** change `applicationId` or the signing key. The APK must be installable over the previous release.
 
 ## 3. Publish on GitHub
@@ -51,7 +59,7 @@ Use the GitHub web UI:
 2. Choose a new tag: `v1.3.1` (must start with `v`; semver after that).
 3. Set the release title, e.g. `Grocery Ledger 1.3.1`.
 4. Add release notes. These are shown in the app's update dialog.
-5. Attach the signed APK as the release asset.
+5. Attach the signed APK and its `.sha256` checksum file as release assets.
 6. Leave **Set as the latest release** selected.
 7. Do not mark it as a pre-release if it is the update you want all users to receive.
 8. Publish.
@@ -62,6 +70,7 @@ If you have the GitHub CLI and Git installed, the equivalent is:
 git tag v1.3.1
 git push origin v1.3.1
 gh release create v1.3.1 .\dist\GroceryLedger-1.3.1-release.apk `
+  .\dist\GroceryLedger-1.3.1-release.apk.sha256 `
   --title "Grocery Ledger 1.3.1" `
   --notes "Release notes here"
 ```
@@ -91,7 +100,9 @@ Then in the app: **Settings → Check for updates**. The update dialog should sh
 
 The tag must be numerically newer than the installed `versionName`. `v1.3.1` is newer than `1.3.0`. Do not rely on `versionCode` alone because GitHub does not know the APK's versionCode. The APK itself must have a higher `versionCode` than the installed build, or the in-app verifier refuses it.
 
-GitHub computes the asset digest automatically. Confirm the response includes a `digest` beginning with `sha256:`; without it, the app still verifies the signing key but cannot check the download checksum.
+GitHub computes the asset digest automatically. Confirm the response includes a `digest` beginning with `sha256:`; without it, the app still verifies the signing key but cannot check the download checksum. The digest must match the local `.sha256` file.
+
+The APK is sideloaded, so Play Protect may warn about it. The README explains the verification steps; publish the `.sha256` file so users can confirm a download.
 
 ## 5. Install the update
 
