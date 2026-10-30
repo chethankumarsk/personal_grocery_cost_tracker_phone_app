@@ -3,7 +3,9 @@ package dev.groceryledger.ui
 import dev.groceryledger.data.csv.ImportRowError
 import dev.groceryledger.data.update.ReleaseInfo
 import dev.groceryledger.data.update.UpdateFailureReason
+import dev.groceryledger.data.update.UpdateInstallFailure
 import dev.groceryledger.domain.date.DateRange
+import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.Expense
 import dev.groceryledger.domain.model.SpendingSummary
 import dev.groceryledger.domain.model.WeekStart
@@ -60,6 +62,7 @@ data class EditorUiState(
     val date: LocalDate,
     val name: String = "",
     val amountText: String = "",
+    val category: String = Categories.UNCATEGORIZED,
     val nameError: NameError? = null,
     val amountError: AmountError? = null,
     val isSaving: Boolean = false,
@@ -69,6 +72,7 @@ data class EditorUiState(
     val originalName: String = "",
     val originalAmountText: String = "",
     val originalDate: LocalDate = date,
+    val originalCategory: String = Categories.UNCATEGORIZED,
 ) {
     val isDirty: Boolean
         get() = when (mode) {
@@ -76,7 +80,8 @@ data class EditorUiState(
             EditorMode.EDIT ->
                 name != originalName ||
                     amountText != originalAmountText ||
-                    date != originalDate
+                    date != originalDate ||
+                    category != originalCategory
         }
 }
 
@@ -102,4 +107,17 @@ sealed interface UpdateUiState {
     ) : UpdateUiState
     data object NoReleases : UpdateUiState
     data class Failed(val reason: UpdateFailureReason) : UpdateUiState
+
+    /** [percent] is 0..100, or -1 while the server has not declared a size. */
+    data class Downloading(
+        val versionName: String,
+        val percent: Int,
+    ) : UpdateUiState
+
+    data class InstallPermissionRequired(val versionName: String) : UpdateUiState
+
+    data class InstallFailed(
+        val release: ReleaseInfo,
+        val reason: UpdateInstallFailure,
+    ) : UpdateUiState
 }

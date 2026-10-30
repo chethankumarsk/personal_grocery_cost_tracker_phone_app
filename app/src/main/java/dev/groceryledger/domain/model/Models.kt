@@ -10,6 +10,7 @@ data class Expense(
     val date: LocalDate,
     val createdAt: Long,
     val updatedAt: Long,
+    val category: String = Categories.UNCATEGORIZED,
 )
 
 data class DailyTotal(

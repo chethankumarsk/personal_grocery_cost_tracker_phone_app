@@ -14,9 +14,9 @@ ExpenseRepository, SettingsRepository, UpdateChecker
 Room / DataStore / CSV / GitHub Releases
 ```
 
-The app is deliberately small. There is no multi-module Gradle split or dependency-injection framework; a single `AppContainer` wires the database, repositories, settings, backup manager, update checker, and date provider. The package boundaries keep future extraction or replacement possible.
+The app is deliberately small. There is no multi-module Gradle split or dependency-injection framework; a single `AppContainer` wires the database, repositories, settings, backup manager, update/download/install helpers, and date provider. The package boundaries keep future extraction or replacement possible.
 
-The core is offline-first. The only network path is the user-initiated GitHub Releases update check.
+The core is offline-first. The only network paths are the user-initiated GitHub Releases update check and the update APK download the user starts.
 
 ## Layers
 
@@ -34,17 +34,19 @@ No Android or Room types cross into `domain`.
 ### `data`
 
 - Room entities/DAOs/database (schema exported to `app/schemas`).
-- `OfflineExpenseRepository` implements totals, entries, autocomplete, CRUD, undo restore, import, and clearing.
+- `OfflineExpenseRepository` implements totals, entries, autocomplete, CRUD, undo restore, import, clearing, and category CRUD.
+- Categories are stored by name on entries and listed in the `categories` table (schema v2). Renaming updates every entry using the category; deleting reassigns those entries to `Uncategorized`.
 - The `item_catalog` table is a derived cache for suggestions and last-price memory. It is maintained transactionally with entry writes and fully rebuilt after an import. It can always be rebuilt from `expenses`.
 - `CsvBackup` is a pure writer/parser for the versioned CSV format. `CsvBackupManager` handles Android `ContentResolver` streams.
 - `DataStoreSettingsRepository` stores week start and theme with defaults for missing/unknown values.
-- `GitHubUpdateChecker` calls the public GitHub Releases API on IO with 10-second timeouts, compares numeric semver tags, and parses release metadata. It is only invoked from Settings.
+- `GitHubUpdateChecker` calls the public GitHub Releases API on IO with 10-second timeouts, compares numeric semver tags, and parses release metadata (including the APK asset's size and SHA-256 digest). It is only invoked from Settings.
+- `ApkDownloader` streams the chosen APK with timeouts, a size cap, digest verification, and atomic `.part` promotion. `ApkVerifier` checks package/version/signature; `ApkInstaller` opens Android's installer through a cache-scoped `FileProvider`.
 - No third-party network library is used.
 
 ### `ui`
 
 - `MainViewModel` owns selected date/month, day sheet visibility, editor state, suggestions, import preview, update state, and snackbar events.
-- `CalendarScreen` shows the month, summary card, grid, and day sheet; `EntrySheet` handles add/edit/delete and the date picker; `SettingsScreen` handles preferences, backup, delete-all, and the update check.
+- `CalendarScreen` shows the month, summary card, grid, and day sheet; `EntrySheet` handles add/edit/delete and the date picker; `SettingsScreen` handles preferences, category rename/delete, backup, delete-all, the update check, and the download/install dialogs.
 - `UiText` lets the ViewModel emit localized resource-backed snackbar messages without holding a `Context`.
 - The theme uses Material 3 dynamic colors on Android 12+ and a green fallback palette below that.
 
@@ -91,14 +93,15 @@ format_version,entry_uid,date,item,amount_inr
 - `refreshToday()` runs on `ON_RESUME` to handle midnight rollover.
 - The day sheet and editor are separate modal sheets; opening one closes the other, and the day sheet reopens after a save/delete that started from it.
 
-## Update check
+## Update check and install
 
 - **Source:** GitHub Releases (`/releases/latest`) for the public repository.
 - **Trigger:** only the **Check for updates** button in Settings. No polling or background work.
-- **Comparison:** numeric semver of the release tag (`v1.1.0`) against `BuildConfig.VERSION_NAME`; build/pre-release suffixes are ignored and `versionCode` is not available from GitHub.
+- **Comparison:** numeric semver of the release tag (`v1.3.1`) against `BuildConfig.VERSION_NAME`; build/pre-release suffixes are ignored and `versionCode` is not available from GitHub.
 - **Result:** update available with release notes, up to date, no releases, or a friendly failure (offline, rate limit, server, malformed response).
-- **Install:** the dialog opens the GitHub release page in the browser. The app does not download or install APKs and does not request install-package permissions.
-- **Publishing:** signed APK + matching `vX.Y.Z` tag + release notes; same package/key; higher `versionCode`. See `docs/RELEASING.md`.
+- **In-app install:** `ApkDownloader` streams the APK asset to `cache/updates/update.apk` through a `.part` file, enforcing a 100 MB cap and verifying GitHub's size and SHA-256 `digest` when present. `ApkVerifier` then checks the package name, a higher `versionCode`, and that the APK's signing certificate matches the installed app. `ApkInstaller` exposes the verified file through a cache-scoped `FileProvider` and opens Android's package installer; `REQUEST_INSTALL_PACKAGES` is only used for that handoff.
+- **Fallback:** **Open release page** opens GitHub in the browser and keeps the previous manual install path.
+- **Publishing:** signed APK + matching `vX.Y.Z` tag + release notes; same package/key; higher `versionCode`; GitHub supplies the SHA-256 digest checked by the app. See `docs/RELEASING.md`.
 
 ## Testing
 
@@ -108,14 +111,15 @@ JVM tests use JUnit 4 + Robolectric:
 - Room in-memory tests for repository behavior.
 - CSV round-trip and validation tests.
 - GitHub release JSON parsing tests.
+- APK download tests (size/checksum/cancellation cleanup) against a local HTTP server.
 - Compose/Robolectric smoke tests for activity launch, settings, opening the add sheet, and saving an entry.
 
-There are 46 tests. Instrumented tests are configured but require a device/emulator. Physical-device performance and visual checks are still pending.
+There are 58 JVM tests plus 5 instrumentation tests (Room migration and APK verifier). Physical-device performance and visual checks are still pending.
 
 ## Update path
 
 - Room schema JSON is committed; every future schema version needs a migration and migration test.
 - CSV is versioned; newer app versions import all older versions.
 - Keep the `applicationId` and signing key stable; increase `versionCode`; back up the keystore.
-- Publish signed APKs as GitHub releases with matching semver tags so the manual update check can find them.
+- Publish signed APKs as GitHub releases with matching semver tags so the update checker can find them; keep the asset name ending in `.apk` and leave GitHub's computed SHA-256 digest intact.
 - Use the version catalog for dependency/SDK changes and run the full build/lint/test before shipping.

@@ -1,22 +1,23 @@
 # Grocery Cost Tracker — Requirements
 
-- **Version:** 0.5 (update checker and completion matrix)
-- **Date:** 29 October 2026
-- **Status:** v1 + manual update check implemented; physical-device QA pending
+- **Version:** 0.7 (category management)
+- **Date:** 30 October 2026
+- **Status:** v1 + categories + category management + manual check/in-app update implemented; physical-device QA pending
 - **App name:** Grocery Ledger
 - **Platform:** Android, single user, offline-first, INR
 
-## 0. Implementation status (29 October 2026)
+## 0. Implementation status (30 October 2026)
 
-- v1 and the manual GitHub update check are implemented in Kotlin + Jetpack Compose with Room and DataStore.
-- JVM test suite: 46 tests covering domain logic, CSV, Room repository behavior, update parsing/versioning, entry-sheet state, activity launch, settings, and add-entry/calendar UI flows.
+- v1, categories, category management, and both update paths are implemented in Kotlin + Jetpack Compose with Room and DataStore.
+- JVM test suite: 58 tests covering domain logic, CSV, Room repository behavior, category management, update parsing/versioning, APK download verification, entry-sheet state, activity launch, settings, and add-entry/calendar UI flows.
+- Instrumentation tests (5): v1→v2 migration preserves entries, defaults them to Uncategorized, and seeds presets; the APK verifier accepts a correctly signed newer build and rejects same-version, wrong-package, and non-APK files.
 - Debug and signed release APKs build; `lintDebug` reports no errors.
-- Release package: `dev.groceryledger`; version 1.1.1 / versionCode 3; minSdk 26, compile/target SDK 36.
+- Release package: `dev.groceryledger`; version 1.3.1 / versionCode 8; minSdk 26, compile/target SDK 36.
 - Release keystore created outside the repository; the first real install should use the signed release APK.
-- Network is used only for the user-initiated GitHub Releases update check.
+- Network is used only for the user-initiated GitHub Releases check and the update APK download the user explicitly starts.
 - LLM/developer context: `AGENTS.md`, `docs/KNOWLEDGE_GRAPH.md`, and the machine-readable `docs/knowledge-graph.json`.
-- GitHub release **v1.1.0** is published with the signed APK and release notes; the update checker resolves it.
-- Remaining: manual visual/performance QA on a physical Android phone.
+- GitHub release **v1.1.1** is the latest published release; the update checker resolves it. In-app installation needs a release newer than the installed app (e.g. `v1.3.1`).
+- Remaining: manual visual/performance QA on a physical Android phone and an end-to-end in-app update test against a published newer release.
 
 ---
 
@@ -24,7 +25,7 @@
 
 A calendar-first Android app for recording grocery purchases item by item and seeing exactly how much was spent on any day, week, or month. Each calendar day can hold any number of entries (item name + cost). Day cells show that day's spend, a summary always shows the selected date's day/week/month totals, and typing an item name suggests previously used items along with the last price paid.
 
-The app is deliberately small: no accounts, no cloud, no ads, no analytics. Spending data is stored locally. The only network feature is a manual GitHub Releases update check that the user triggers; Android's optional system backup may include app data if enabled. Nothing is deleted automatically, and a one-tap CSV export/import provides a backup the user controls, so data can be restored after an accidental clear.
+The app is deliberately small: no accounts, no cloud, no ads, no analytics. Spending data is stored locally. The only network features are the manual GitHub Releases update check and the optional in-app update download the user starts; Android's optional system backup may include app data if enabled. Nothing is deleted automatically, and a one-tap CSV export/import provides a backup the user controls, so data can be restored after an accidental clear.
 
 ## 2. Goals and success criteria
 
@@ -33,7 +34,7 @@ The app is deliberately small: no accounts, no cloud, no ads, no analytics. Spen
 | G1 — Fast entry | A repeat item can be logged in under 10 seconds: tap day → type 2–3 letters → tap suggestion → enter amount → save. |
 | G2 — Correct totals | Day, week, and month totals are exact to the paisa and update immediately after any add/edit/delete. |
 | G3 — Good recall | Previous items appear as suggestions while typing; the last price and date are visible before confirming. |
-| G4 — Private and offline-first | All core features work offline. The app requests no network data except a manual GitHub update check; it stores everything locally and has no account or app server. |
+| G4 — Private and offline-first | All core features work offline. The app requests no network data except a manual GitHub update check and an optional update download the user starts; it stores everything locally and has no account or app server. |
 | G5 — Low friction | No mandatory setup, onboarding, account, or category assignment. |
 | G6 — Data safety | Export → clear → import restores all entries, totals, and suggestions with no duplicates; nothing is deleted automatically. |
 | G7 — Easy to evolve | Adding a field or feature, bumping Android versions, and shipping an update are localized changes; every update preserves existing data. |
@@ -48,7 +49,7 @@ The app is deliberately small: no accounts, no cloud, no ads, no analytics. Spen
 - Day, week, and month spending totals for the selected date.
 - Autocomplete from previously entered item names, with last price/date.
 - Minimal settings (week start, theme) and local data safety: Android auto-backup plus CSV export and import.
-- Manual update check against the project's GitHub Releases page.
+- Manual update check against the project's GitHub Releases page, with optional in-app download and install plus the release page as a browser fallback.
 
 ### Out of scope (v1)
 
@@ -57,7 +58,7 @@ The app is deliberately small: no accounts, no cloud, no ads, no analytics. Spen
 - Budgets, alerts, or spending limits.
 - Receipt photos, OCR, barcode scanning.
 - Shopping lists or recurring entries.
-- Categories, charts, and cross-store price comparison.
+- Charts, cross-store price comparison, and category filtering/breakdown.
 - Multi-currency; currency is fixed to INR.
 - iOS or web versions.
 - Ads, telemetry, or crash reporting that sends data off-device.
@@ -163,7 +164,7 @@ With Sunday week start, the week containing 29 Oct is 25–31 Oct and totals ₹
 - **SET-3 (Must):** Export all entries to CSV via the Android share/save sheet.
 - **SET-4 (Must):** Import a CSV created by the app. Import merges into existing data, skips duplicates by `entry_uid`, previews the counts before writing, and never deletes existing entries. See DAT-6 to DAT-9.
 - **SET-5 (Must):** "Delete all data" with a strong confirmation dialog. The dialog offers **Export backup first**. Deletes all entries and suggestion history but keeps preferences.
-- **SET-6 (Must):** About section: app version and a plain-language privacy note: core features work offline; the only network feature is the manual update check; spending data is stored locally; Android system backup may include the app's data if the user has backup enabled. No external links required.
+- **SET-6 (Must):** About section: app version and a plain-language privacy note: core features work offline; network is used only for the manual update check and an update download the user starts; spending data is stored locally; Android system backup may include the app's data if the user has backup enabled. No external links required.
 - **SET-7 (Must):** No currency selector; INR is fixed.
 - **SET-8 (Must):** A **Check for updates** action that queries GitHub Releases only when tapped. See section 5.8.
 
@@ -172,7 +173,7 @@ With Sunday week start, the week containing 29 Oct is 25–31 Oct and totals ₹
 - **DAT-1 (Must):** Entries persist locally across app restarts and updates. Data is never auto-deleted or expired.
 - **DAT-2 (Must):** Android Auto Backup is enabled so data can be restored when migrating devices. It is a system-level feature and may upload app data to the user's Google account if system backup is enabled; this is disclosed in About. It is best-effort and does not replace the CSV backup.
 - **DAT-3 (Must):** An entry write and its suggestion-catalog update happen in one database transaction; a crash cannot leave them inconsistent.
-- **DAT-4 (Must):** CSV export format: RFC 4180 compliant, UTF-8 with BOM for Excel compatibility, columns `format_version,entry_uid,date,item,amount_inr`, dates as `yyyy-MM-dd`, amounts always with two decimals, sorted by date then creation order. `format_version` is `1` for this release. Filename `grocery-spending-YYYY-MM-DD.csv`. Future fields are added as new columns with a version bump; existing columns never change meaning.
+- **DAT-4 (Must):** CSV export format: RFC 4180 compliant, UTF-8 with BOM for Excel compatibility, columns `format_version,entry_uid,date,item,amount_inr,category`, dates as `yyyy-MM-dd`, amounts always with two decimals, sorted by date then creation order. `format_version` is `2` for this release. Filename `grocery-spending-YYYY-MM-DD.csv`. Future fields are added as new columns with a version bump; existing columns never change meaning.
 - **DAT-5 (Must):** The display name of an item in suggestions follows the most recent entry's spelling (latest expense date, then creation time).
 - **DAT-6 (Must):** CSV import reads a file through the system file picker. The header is required and columns may be in any order; `format_version` must be an integer the app supports (currently `1`) and each row's `entry_uid` must be a valid UUID. A file with a newer `format_version` is rejected with an "update the app first" message instead of importing a partial file. Unknown extra columns are ignored. Unreadable files or files missing required columns are rejected before anything is written; individual bad rows are handled per DAT-8.
 - **DAT-7 (Must):** Import merges by `entry_uid`: rows whose UID already exists (in the app or earlier in the file) are skipped as duplicates. Existing entries are never overwritten or deleted by an import. CSV import is for backup/restore, not bulk editing: changing a row without changing its UID means the change is not applied.
@@ -180,15 +181,28 @@ With Sunday week start, the week containing 29 Oct is 25–31 Oct and totals ₹
 - **DAT-9 (Must):** Importing an export into an empty app fully restores the entries and suggestion history, with the same day/week/month totals.
 - **DAT-10 (Must):** Data remains until the user deletes individual entries, uses **Delete all data**, or clears/uninstalls the app (which removes the local copy; system backup may restore it). No automatic cleanup or expiry.
 
-### 5.8 Update check
+### 5.8 Update check and in-app update
 
-- **UPD-1 (Must):** Settings includes **Check for updates**, which contacts the public project's GitHub Releases API (`/releases/latest`) only when the user taps it. No background or automatic polling in v1.
+- **UPD-1 (Must):** Settings includes **Check for updates**, which contacts the public project's GitHub Releases API (`/releases/latest`) only when the user taps it. No background or automatic polling.
 - **UPD-2 (Must):** Compare the latest published release tag (expected `vX.Y.Z`) numerically with the installed `versionName`. Show one of: update available, up to date, no releases published, or a friendly failure.
-- **UPD-3 (Must):** On update available, show the latest version, installed version, release notes (plain text), and a button that opens the GitHub release page in the browser. The app must not download or install an APK itself and must not request `REQUEST_INSTALL_PACKAGES`.
-- **UPD-4 (Must):** Network failures, timeouts, GitHub rate limits, invalid responses, and `404` (no releases) are handled without crashing. Requests use a 10-second connect/read timeout and send no spending data.
+- **UPD-3 (Must):** On update available, show the latest version, installed version, release notes (plain text), and two actions: **Download and install** when the release has an APK asset, and **Open release page** which opens the GitHub release in the browser (retained as the manual fallback). The app never installs silently; Android's package installer shows its own confirmation.
+- **UPD-4 (Must):** Network failures, timeouts, GitHub rate limits, invalid responses, and `404` (no releases) are handled without crashing. Metadata requests use a 10-second connect/read timeout; APK downloads use 15-second connect and 60-second read timeouts. Requests send no spending data.
 - **UPD-5 (Must):** Release publishing requires a normal (not draft/pre-release) GitHub release, a tag matching `versionName` with a `v` prefix, a signed APK asset, the same `applicationId`, the same signing key, and a higher `versionCode`. See `docs/RELEASING.md`.
-- **UPD-6 (Should, deferred):** An optional daily automatic check with a non-blocking notification. Requires an explicit privacy/UX decision; v1 remains manual-only.
-- **UPD-7 (Must):** `INTERNET` is the only added permission. No analytics, accounts, or app server are introduced.
+- **UPD-6 (Should, deferred):** An optional daily automatic check with a non-blocking notification. Requires an explicit privacy/UX decision; checks remain manual-only.
+- **UPD-7 (Must):** `INTERNET` covers the update check/download. `REQUEST_INSTALL_PACKAGES` is added solely so the in-app path can hand a verified APK to Android's installer. No analytics, accounts, or app server are introduced.
+- **UPD-8 (Must):** Before an in-app install, the downloaded file must match GitHub's published size and SHA-256 digest (when the asset provides one), declare the same package name, have a higher `versionCode`, and be signed with a key matching the installed app. A failed check deletes the file and shows a friendly error; a signature mismatch is never installed.
+- **UPD-9 (Must):** APK downloads start only on an explicit tap, write to a temporary file in the app cache, never exceed 100 MB, are removed on failure or cancellation, and are exposed to the installer only through a cache-scoped `FileProvider`. No background downloading.
+
+### 5.9 Categories
+
+- **CAT-1 (Must):** Every entry carries exactly one category. The default is **Uncategorized**; choosing a category is optional so quick entry stays two fields.
+- **CAT-2 (Must):** A preset list is seeded on first run: Vegetables & Fruits, Dairy & Eggs, Grains & Pulses, Snacks & Beverages, Household, Personal Care, Other.
+- **CAT-3 (Must):** New categories can be added from the entry editor; names are trimmed, whitespace-collapsed, case-insensitively unique, at most 40 characters, and cannot be "Uncategorized".
+- **CAT-4 (Must):** The day sheet shows the category under the item name, hidden for Uncategorized.
+- **CAT-5 (Must):** CSV `format_version` 2 adds a `category` column. v1 files still import and their rows become Uncategorized. Older app versions reject v2 files.
+- **CAT-6 (Must):** Schema v2 is additive: an `ALTER TABLE` with a default plus a new `categories` table, seeded by the migration. No entries are lost.
+- **CAT-7 (Must):** Settings lists every category except the virtual `Uncategorized` one. A category can be renamed; the new name follows the same validation as adding and all entries using it are updated. A category can be deleted after confirmation; its entries move to `Uncategorized`. `Uncategorized` cannot be renamed or deleted.
+- **CAT-8 (Should, deferred):** Category filtering or a monthly category breakdown.
 
 ## 6. Data model
 
@@ -261,7 +275,7 @@ Calendar (home)
 - **NFR-4 (Must):** Accessibility: TalkBack labels include the date, total, and item count (e.g. "29 October, total ₹450, 3 items"); touch targets ≥ 48 dp; layouts tolerate 200% font scaling; no meaning conveyed by color alone.
 - **NFR-5 (Must):** English (India) UI with all strings externalized. Item names accept any Unicode script.
 - **NFR-6 (Must):** Android 8.0 (API 26) minimum; compile and target SDK 36 for v1. Future SDK bumps are handled centrally as part of the update checklist.
-- **NFR-7 (Must):** No analytics, ads, tracking, or app servers. The only network request is the manual GitHub Releases update check; no spending data is sent. Android's system-level backup may copy app data off-device if enabled and disclosed.
+- **NFR-7 (Must):** No analytics, ads, tracking, or app servers. Network traffic is limited to the manual GitHub Releases update check and the update download the user starts; no spending data is sent. Android's system-level backup may copy app data off-device if enabled and disclosed.
 - **NFR-8 (Must):** State survives configuration changes; selected date survives process death. In-progress editor drafts survive configuration changes where reasonable.
 - **NFR-9 (Must):** Unit tests for totals, week/month boundaries, INR formatting, suggestion ranking, and update version/JSON parsing; database tests for catalog consistency and import dedupe; UI tests for launch, settings, add-entry, calendar, and add-sheet flows.
 - **NFR-10 (Must):** Debug APK under 20 MB.
@@ -277,7 +291,7 @@ Calendar (home)
 - **Data evolution:** Exported Room schemas checked into the repo, migration tests, and a versioned CSV mapper. No destructive migrations.
 - **Build:** Gradle Kotlin DSL, version catalog, latest stable Android Gradle Plugin and Kotlin, debug/release build types. Release signing config is supplied from outside the repo.
 - **Testing:** JUnit4 + kotlin.test for domain logic; Robolectric for Room and Compose UI tests; update parsing/versioning tests. One command runs tests and lint.
-- **Network:** No third-party network library. `HttpURLConnection` is used only by `GitHubUpdateChecker`, with timeouts and friendly failures.
+- **Network:** No third-party network library. `HttpURLConnection` is used only by `GitHubUpdateChecker` and `ApkDownloader`, with timeouts and friendly failures.
 
 ## 10. Error handling and edge cases
 
@@ -302,7 +316,10 @@ Calendar (home)
 - Update check rate-limited or server error → friendly retry message; no crash.
 - No published releases → "No releases yet" message.
 - Malformed release metadata → "unexpected response" failure rather than a broken dialog.
-- Update available → release notes and browser handoff; the app never downloads or installs an APK itself.
+- Update available → release notes, **Download and install**, and the browser fallback.
+- Download interrupted, oversized, checksum-mismatched, wrong package, older `versionCode`, or wrong signer → file discarded with a friendly message; nothing is installed.
+- Install permission not granted → dialog explains, opens Android's "install unknown apps" setting, and continues after returning.
+- Android installer unavailable or cancelled → the release page remains available; a verified cached APK can be retried without re-downloading.
 
 ## 11. Acceptance scenarios
 
@@ -321,7 +338,7 @@ Calendar (home)
 | S11 | Open a day with no entries | "No items on this day" empty state; totals ₹0 |
 | S12 | Navigate to a future month | Next arrow is disabled; no future date can be added |
 | S13 | Rotate the device with the add sheet open | Draft input and selected date survive |
-| S14 | Export CSV | Valid CSV with `format_version,entry_uid,date,item,amount_inr` header and all entries; amounts with 2 decimals |
+| S14 | Export CSV | Valid CSV with `format_version,entry_uid,date,item,amount_inr,category` header and all entries; amounts with 2 decimals |
 | S15 | Enable 200% font size | Calendar and summary remain readable without clipped totals |
 | S16 | 20,000 entries, type 2 letters | Suggestions in under 150 ms; scrolling stays smooth |
 | S17 | Delete all data, then import the export taken beforehand | All entries, totals, and suggestions restored; no duplicates |
@@ -330,10 +347,12 @@ Calendar (home)
 | S20 | Import a file while entries already exist | New entries merge in; existing entries are untouched |
 | S21 | Import a file with a newer `format_version` | Rejected with an "update the app" message; no data changes |
 | S22 | Tap Check for updates when the latest release is `v1.0.0` and the app is 1.0.0 | "You're up to date" dialog; no install action |
-| S23 | Tap Check for updates when `v1.1.0` is published and the app is 1.0.0 | Update dialog shows 1.1.0, notes, and opens the release page in the browser |
+| S23 | Tap Check for updates when `v1.3.1` is published and the app is 1.3.0 | Update dialog shows 1.3.1 and notes; Download and install verifies and opens Android's installer, and Open release page opens the browser |
 | S24 | Tap Check for updates when the repository has no releases | Friendly "No releases yet" dialog |
 | S25 | Tap Check for updates while offline or rate-limited | Friendly failure message with retry/close; no crash |
 | S26 | Open Settings without tapping Check for updates | No network request is made |
+| S27 | Download an update whose checksum or signing key does not match | File is discarded; friendly error; nothing is installed |
+| S28 | Tap Download and install without install permission | App explains, opens the permission setting, and installs after returning |
 
 ## 12. Assumptions
 
@@ -342,9 +361,9 @@ Calendar (home)
 - **A3:** Week and month totals are calendar periods of the selected date, not rolling 7/30-day windows.
 - **A4:** Weeks are Monday–Sunday by default; Sunday–Saturday is available in settings.
 - **A5:** Currency is INR only, with Indian digit grouping.
-- **A6:** v1 records name, amount, and date only; no quantity, unit, category, store, or notes.
+- **A6:** v1 records name, amount, and date; categories were added in 1.2.0. There is still no quantity, unit, store, or notes field.
 - **A7:** Future-dated entries are not allowed.
-- **A8:** Advertising, accounts, app servers, analytics, and cloud sync are out of scope permanently. The manual GitHub Releases update check is the only network feature; Android's optional device backup is the only off-device data copy and is disclosed.
+- **A8:** Advertising, accounts, app servers, analytics, and cloud sync are out of scope permanently. The manual GitHub Releases update check and the update download the user starts are the only network features; Android's optional device backup is the only off-device data copy and is disclosed.
 - **A9:** Primary use is a phone in portrait; tablets are supported but not optimized separately.
 - **A10:** Distribution is a sideloaded APK for now; Play Store publication is a later decision.
 - **A11:** Money values use paise precision; the UI accepts whole rupees and optional paise.
@@ -352,9 +371,9 @@ Calendar (home)
 - **A13:** The app never deletes data on its own. Only an explicit user action or clearing/uninstalling the app removes the local copy; Android system backup, if enabled, is best-effort and may restore it.
 - **A14:** The app stays a single Gradle module for v1; package boundaries provide the seams for future growth.
 - **A15:** `applicationId` and the final release signing key are fixed before the first build installed for real use; changing either breaks in-place updates.
-- **A16:** The CSV `format_version` starts at 1 and only increments when columns or their meaning change.
-- **A17:** Updates are distributed as GitHub Releases with a signed APK and a `vX.Y.Z` tag; the app opens the release page rather than installing APKs itself.
-- **A18:** Automatic update checks and in-app APK installation are deferred until a separate privacy/UX decision.
+- **A16:** The CSV `format_version` is 2 (category added) and only increments when columns or their meaning change.
+- **A17:** Updates are distributed as GitHub Releases with a signed APK and a `vX.Y.Z` tag. The app offers an in-app download/install path and retains the release page as the manual browser fallback.
+- **A18:** Automatic update checks remain deferred until a separate privacy/UX decision. Manual in-app installation is implemented (ADR 0003).
 
 ## 13. Decisions and remaining questions
 
@@ -366,20 +385,21 @@ Calendar (home)
 | Implementation stack | Kotlin + Jetpack Compose |
 | Entry structure | One flat entry per item (no trips) |
 | Week definition | Monday–Sunday calendar week for the selected date; calendar month. Sunday start remains a setting. |
-| Optional fields | None in v1; name, amount, and date only |
+| Optional fields | Category is optional and defaults to `Uncategorized`; name, amount, and date are required |
 | Backup and restore | CSV export and import. UID-based, idempotent merge; data persists until the user explicitly clears it. |
 | Update strategy | Single module with layered/package seams; additive Room migrations with tests; versioned CSV; stable `applicationId` and signing key; one-command build/test. |
 | Signing | 4096-bit RSA release key created before the first real install; keystore and credentials stored outside the repository |
 | Language/currency | English (India) UI; INR with paise accepted and displayed when non-zero |
 | Distribution | Sideloaded signed APK for v1; Play Store is a later decision |
-| Update source | GitHub Releases (`/releases/latest`), manual check, semver tag, browser handoff; no in-app install or background polling |
+| Update source | GitHub Releases (`/releases/latest`), manual check, semver tag; in-app download/install with checksum + signature verification, plus browser fallback; no background polling |
 
 ### 13.2 Remaining validation
 
 | Item | Status |
 | --- | --- |
 | Physical-device visual and performance QA | Pending |
-| Publish the first GitHub release (`v1.1.0` or later) | Done — `v1.1.0` published with signed APK |
+| Publish the first GitHub release (`v1.1.0` or later) | Done — `v1.1.1` published with signed APK |
+| End-to-end in-app update against a published newer release | Pending: install 1.3.1 manually, then publish 1.3.2 or later; downloader/verifier covered by tests |
 | Optional Play Store publication | Not planned for v1 |
 
 ## 14. Recommended future enhancements
@@ -426,7 +446,7 @@ These are intentionally excluded from v1 but worth designing for:
 - **MNT-14 (Must):** The release keystore is stored outside the repository and backed up securely. Losing it permanently prevents in-place updates. The first build installed for real use must already use the final signing key; switching from debug to release signing later requires an uninstall (and data restore via CSV).
 - **MNT-15 (Must):** `versionCode` increases with every release; `versionName` follows semantic versioning; each release gets a short changelog entry and a git tag.
 - **MNT-16 (Must):** Dependency and SDK versions are centralized in a Gradle version catalog; dependencies stay minimal and stable. The Gradle wrapper is committed for reproducible builds, and Android SDK bumps happen in one place.
-- **MNT-17 (Must):** Debug and release build types are configured. Release builds are signed (once the keystore exists) and install over the previous release without data loss. Updates are sideloaded APKs installed over the existing app; the app can check GitHub Releases manually but does not download or install APKs itself.
+- **MNT-17 (Must):** Debug and release build types are configured. Release builds are signed (once the keystore exists) and install over the previous release without data loss. The app checks GitHub Releases manually and can hand a verified APK to Android's installer, with the release page retained as a fallback.
 - **MNT-18 (Must):** One command builds and tests the app (e.g. `gradlew build`); Android Lint passes with no errors. CI is optional but easy to add.
 - **MNT-19 (Must):** No feature flags or remote config in v1 (offline). New features are additive and must not require rewriting the calendar, entry, or totals core.
 
@@ -462,14 +482,14 @@ When adding a feature or field:
 ## 16. Definition of done (v1)
 
 - All **Must** requirements implemented and verified where device testing is not required.
-- Unit, database, CSV, update, and UI tests pass (46 tests); totals, week/month boundaries, suggestion ranking, import dedupe, CSV versioning, update parsing/version comparison, entry-sheet state, and the UI smoke flows are covered.
+- Unit, database, CSV, update, download-verification, and UI tests pass (58 tests); totals, week/month boundaries, suggestion ranking, import dedupe, CSV versioning, category rename/delete, update parsing/version comparison, APK checksum/size handling, entry-sheet state, and the UI smoke flows are covered.
 - `gradlew build` succeeds and Android Lint reports no errors.
-- Room schema JSON is checked in and the migration-test setup is in place.
+- Room schema JSON is checked in and the v1→v2 migration instrumentation test passes.
 - UI code imports no Room entities; totals/date/formatting logic is unit-tested and independent of Android.
 - No hard-coded user-facing strings or colors; shared components and the design system are used.
 - Manual QA on at least Android 8, 12, 14, and 16 (emulator acceptable for older versions) is complete.
-- `INTERNET` exists only for the manual GitHub update check; no other network permission; no crashes in add/edit/delete/undo/import/update-check flows.
-- Update check handles up-to-date, available, no-releases, offline, rate-limited, and malformed responses.
+- `INTERNET` exists only for the manual GitHub update check/download; `REQUEST_INSTALL_PACKAGES` exists only for the in-app installer handoff; no crashes in add/edit/delete/undo/import/update-check flows.
+- Update check handles up-to-date, available, no-releases, offline, rate-limited, and malformed responses. In-app install refuses a bad checksum, wrong package, older version, or different signer.
 - Fresh install → add entries → kill app → reopen: data intact.
 - Export → delete all data → import the export: all entries, totals, and suggestions restored; importing again adds nothing.
 - Importing an older-format CSV works; importing a newer format is rejected without changing data.
@@ -496,42 +516,44 @@ When adding a feature or field:
 | SUG-1..SUG-9 | Done | Debounced suggestions, ranking, last price/date, price chip, normalization, offline behavior, catalog cleanup. |
 | SUG-10 | Deferred | Optional recent-item chips. |
 | TOT-1..TOT-10 | Done | Exact paise sums, Monday/Sunday weeks, calendar months, Indian formatting, empty zero, local-date semantics, midnight refresh. |
-| SET-1..SET-8 | Done | Week start, theme, CSV export/import, delete all, about/privacy, INR, manual update check. |
+| SET-1..SET-8 | Done | Week start, theme, CSV export/import, delete all, about/privacy, INR, manual update check with in-app install and browser fallback. |
 | DAT-1..DAT-10 | Done | Local persistence, auto backup, transactional catalog, versioned CSV, UID merge, preview/errors, restore, no expiry. |
-| UPD-1..UPD-5, UPD-7 | Done | Manual GitHub Releases check, semver comparison, notes + browser handoff, friendly failures, release policy, INTERNET-only permission. |
-| UPD-6 | Deferred | Optional automatic daily check; v1 is manual-only. |
+| UPD-1..UPD-5, UPD-7..UPD-9 | Done | Manual GitHub Releases check, semver comparison, notes + Download and install + browser fallback, checksum/package/version/signature verification, friendly failures, release policy, scoped permissions. |
+| UPD-6 | Deferred | Optional automatic daily check; checks remain manual-only. |
+| CAT-1..CAT-7 | Done | Category column + `categories` table (schema v2), presets, editor chips with "+ New category", day-sheet label, CSV v2 with v1 import, Settings rename/delete with entry reassignment. |
+| CAT-8 | Deferred | Category filtering and monthly breakdown. |
 
 ### 17.2 Non-functional requirements
 
 | Requirement | Status | Evidence / remaining work |
 | --- | --- | --- |
-| NFR-1 | Done | Offline core; INTERNET only for update check; no storage permission. |
+| NFR-1 | Done | Offline core; INTERNET only for the update check/download; REQUEST_INSTALL_PACKAGES only for the installer; no storage permission. |
 | NFR-2 | Partial | Targets defined; physical-device timing not measured. |
 | NFR-3 | Done | No background services, alarms, polling, or wake locks. |
 | NFR-4 | Partial | Content descriptions, 48 dp targets, scalable layouts implemented; TalkBack/200% font device QA pending. |
 | NFR-5 | Done | All strings externalized; Unicode names accepted. |
 | NFR-6 | Done | minSdk 26; compile/target SDK 36. |
-| NFR-7 | Done | No analytics/ads/servers; only manual GitHub update request; backup disclosed. |
+| NFR-7 | Done | No analytics/ads/servers; manual GitHub check plus user-started APK download; backup disclosed. |
 | NFR-8 | Partial | Selected date survives process death; editor draft survives configuration changes but not process death. |
-| NFR-9 | Done | 46 JVM tests across money, dates, ranking, CSV, Room, update logic, entry-sheet state, and Compose UI smoke flows. |
+| NFR-9 | Done | 58 JVM tests across money, dates, ranking, CSV, Room, category management, update/download logic, entry-sheet state, and Compose UI smoke flows. |
 | NFR-10 | Done | Release APK ~8 MB; debug under 20 MB. |
-| NFR-11 | Partial | Migration policy and exported schemas in place; no schema migration exists yet. |
+| NFR-11 | Done | Migration policy and exported schemas in place; v2 migration and its instrumentation test pass. |
 
 ### 17.3 Maintainability requirements
 
 | Requirement | Status | Evidence / remaining work |
 | --- | --- | --- |
 | MNT-1..MNT-6 | Done | Layer/package separation, repository interfaces, pure domain, manual DI, design system, single module. |
-| MNT-7 | Partial | Schema JSON exported; migration-test setup will accompany the first schema change. |
+| MNT-7 | Done | Schema JSON exported; the v1→v2 migration is covered by an instrumentation test. |
 | MNT-8..MNT-13 | Done | Additive policy, rebuildable catalog, versioned CSV, stable settings keys, UID stability, stable applicationId, signed release. |
 | MNT-14 | Done | Release keystore outside the repo; first real install should use the final release-signed APK. |
 | MNT-15 | Partial | versionCode/versionName/changelog present; no git tag yet because Git is not installed in the build environment. |
 | MNT-16 | Done | Version catalog and wrapper committed. |
-| MNT-17 | Done | Debug/release variants; signed release builds; manual update check; no in-app install. |
+| MNT-17 | Done | Debug/release variants; signed release builds; manual update check; verified in-app download/install plus browser fallback. |
 | MNT-18 | Done | One-command tests/lint/build; 0 lint errors. |
 | MNT-19 | Done | No feature flags or remote config; additive seams. |
 | MNT-20 | Done | README, architecture, ADRs, release guide, AGENTS.md, knowledge graph. |
-| MNT-21 | Partial | Broad tests pass; migration test awaits first migration. |
+| MNT-21 | Done | Broad JVM tests pass (58) plus migration and APK verifier instrumentation tests (5). |
 | MNT-22 | Partial | Patterns followed; physical-device accessibility QA pending. |
 
 ### 17.4 Acceptance scenarios
@@ -560,10 +582,12 @@ When adding a feature or field:
 | S20 | Done | CSV merge/repository import test. |
 | S21 | Done | Newer-format rejection test. |
 | S22 | Partial | Version comparison logic tested; live GitHub/UI manual. |
-| S23 | Partial | Release parsing/update-available logic tested; live GitHub/UI manual. |
+| S23 | Partial | Release parsing/update-available logic tested; downloader/checksum tests pass; live GitHub download + installer needs a published newer release. |
 | S24 | Partial | 404/no-release handling implemented; live check manual. |
 | S25 | Partial | Failure mapping implemented; offline/rate-limit UI manual. |
 | S26 | Partial | Code only contacts network on tap; manual verification pending. |
+| S27 | Partial | Checksum/size unit tests pass; package/version/non-APK checks pass on device; a wrong-signer APK is rejected by the implemented comparison but needs a second signed fixture for a direct test. |
+| S28 | Partial | Permission flow implemented; manual device check pending. |
 
 ### 17.5 Automated test inventory
 
@@ -572,20 +596,23 @@ When adding a feature or field:
 | MoneyTest | 6 |
 | DateRangesTest | 8 |
 | SuggestionRankerTest | 5 |
-| CsvBackupTest | 8 |
-| OfflineExpenseRepositoryTest | 4 |
+| CsvBackupTest | 10 |
+| OfflineExpenseRepositoryTest | 8 |
 | VersionComparatorTest | 3 |
-| GitHubReleaseParserTest | 4 |
+| GitHubReleaseParserTest | 5 |
+| ApkDownloaderTest | 5 |
+| EntrySheetStateTest | 4 |
 | MainActivityTest | 1 |
 | CalendarUiTest | 2 |
 | AddEntryUiTest | 1 |
-| **Total** | **42** |
+| **Total** | **58** |
+
+Instrumented: `GroceryDatabaseMigrationTest` (1) covers v1→v2 entry preservation and preset seeding; `ApkVerifierTest` (4) covers package, version, signature acceptance, and non-APK rejection against the installed APK.
 
 Build verification: `testDebugUnitTest` passes, `lintDebug` reports 0 errors, and the release APK verifies with apksigner.
 
 ### 17.6 Remaining work
 
-1. Manual device QA: visual layout, TalkBack, 200% font, performance, install-over-update.
-2. ~~Publish the first GitHub release with the signed APK~~ — done: `v1.1.0` is published and marked latest. Next release: bump `versionCode` and publish a newer `vX.Y.Z` tag.
-3. Optional: automatic update checks, in-app download/install, spend-intensity shading, recent-item chips.
-4. Add migration tests with the first Room schema change.
+1. Manual device QA: visual layout, TalkBack, 200% font, performance, install-over-update, and the in-app permission/installer dialogs.
+2. ~~Publish the first GitHub release with the signed APK~~ - done: `v1.1.1` is published and marked latest. Next: publish `v1.3.1`, install it manually once, then publish a newer `v1.3.2` to exercise in-app install.
+3. Optional: automatic update checks, spend-intensity shading, recent-item chips.

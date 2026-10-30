@@ -17,6 +17,21 @@
     <string name="amount_hint">0</string>
     <string name="currency_symbol">₹</string>
     <string name="date">Date</string>
+    <string name="category">Category</string>
+    <string name="category_uncategorized">Uncategorized</string>
+    <string name="new_category">New category</string>
+    <string name="add_category">Add category</string>
+    <string name="category_name">Category name</string>
+    <string name="category_exists">That category already exists.</string>
+    <string name="rename_category">Rename category</string>
+    <string name="rename_category_of">Rename %1$s</string>
+    <string name="delete_category_of">Delete %1$s</string>
+    <string name="delete_category_title">Delete “%1$s”?</string>
+    <string name="delete_category_message">Entries in this category will move to Uncategorized. This cannot be undone.</string>
+    <string name="category_renamed">Category renamed.</string>
+    <string name="category_rename_failed">That category name is already used or cannot be used.</string>
+    <string name="category_deleted">Category deleted. Entries moved to Uncategorized.</string>
+    <string name="category_delete_failed">Could not delete that category.</string>
     <string name="select_date">Select date</string>
     <string name="change_date">Change date</string>
     <string name="save">Save</string>
@@ -57,6 +72,9 @@
 
     <string name="settings_general">General</string>
     <string name="settings_appearance">Appearance</string>
+    <string name="settings_categories">Categories</string>
+    <string name="categories_description">Rename a category, or delete one. Entries in a deleted category move to Uncategorized.</string>
+    <string name="categories_empty">No categories yet. Add one from the entry editor.</string>
     <string name="settings_data">Data</string>
     <string name="settings_updates">Updates</string>
     <string name="settings_about">About</string>
@@ -101,16 +119,37 @@
     <string name="delete_all_success">All data deleted.</string>
     <string name="delete_all_failed">Could not delete the data.</string>
 
-    <string name="update_check_description">Check GitHub Releases for a newer version. This is the only feature that uses the internet, and only when you tap the button.</string>
+    <string name="update_check_description">Check GitHub Releases for a newer version. The check runs only when you tap the button, and the APK downloads only when you choose Download and install.</string>
     <string name="check_for_updates">Check for updates</string>
     <string name="checking_for_updates">Checking…</string>
     <string name="current_version">Current version %1$s</string>
     <string name="update_available_title">Update available</string>
     <string name="update_available_message">Version %1$s is available. You have %2$s.</string>
     <string name="update_release_notes">Release notes</string>
+    <string name="update_download_install">Download and install</string>
     <string name="update_open_page">Open release page</string>
     <string name="update_later">Later</string>
-    <string name="update_open_hint">The release page opens in your browser. Download the signed APK and install it over this app.</string>
+    <string name="update_verified_hint">The APK is downloaded from GitHub, checked against the release checksum, and verified to be signed with this app\'s key before Android installs it.</string>
+    <string name="update_no_apk_asset">This release has no APK attached. Use the release page instead.</string>
+    <string name="update_downloading_title">Downloading update</string>
+    <string name="update_downloading_message">Downloading version %1$s…</string>
+    <string name="update_downloading_progress">%1$d%%</string>
+    <string name="update_cancel">Cancel</string>
+    <string name="update_permission_title">Allow installs from Grocery Ledger</string>
+    <string name="update_permission_message">Android needs your permission before it will install the update. Turn on “Allow from this source”, then come back — the install continues automatically.</string>
+    <string name="update_permission_open_settings">Open settings</string>
+    <string name="update_install_failed_title">Could not install the update</string>
+    <string name="update_install_failed_download">The download did not finish. Check your internet connection and try again.</string>
+    <string name="update_install_failed_checksum">The downloaded file did not match the published checksum, so it was discarded. Try again, or use the release page.</string>
+    <string name="update_install_failed_incomplete">The download was incomplete, so it was discarded. Try again.</string>
+    <string name="update_install_failed_too_large">The update file is larger than expected, so it was not downloaded.</string>
+    <string name="update_install_failed_storage">There was not enough space to save the update.</string>
+    <string name="update_install_failed_unreadable">The downloaded file could not be read as an APK, so it was discarded.</string>
+    <string name="update_install_failed_package">The downloaded file is not a Grocery Ledger update, so it was discarded.</string>
+    <string name="update_install_failed_version">The downloaded update is not newer than the installed version, so it was not installed.</string>
+    <string name="update_install_failed_signature">The downloaded update is not signed with the same key as this app. For your safety it was discarded and not installed.</string>
+    <string name="update_install_failed_launch">Android could not open the package installer. Use the release page instead.</string>
+    <string name="update_retry">Try again</string>
     <string name="update_up_to_date_title">You\'re up to date</string>
     <string name="update_up_to_date_message">You have the latest version (%1$s).</string>
     <string name="update_no_releases_title">No releases yet</string>
@@ -121,7 +160,7 @@
     <string name="update_failed_server">The update server returned an unexpected response. Try again later.</string>
     <string name="update_try_again">Try again</string>
 
-    <string name="about_privacy">Grocery Ledger works offline. The only network feature is the update check, which contacts GitHub only when you tap Check for updates. Your spending data stays on this device; Android system backup may include app data if you have backup enabled.</string>
+    <string name="about_privacy">Grocery Ledger works offline. It contacts GitHub only when you tap Check for updates, and downloads the APK only when you choose Download and install. Your spending data stays on this device; Android system backup may include app data if you have backup enabled.</string>
     <string name="version_label">Version %1$s</string>
 
     <string name="entry_deleted">Deleted %1$s (%2$s)</string>

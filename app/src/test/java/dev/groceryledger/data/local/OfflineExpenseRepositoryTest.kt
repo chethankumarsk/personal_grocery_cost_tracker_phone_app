@@ -4,11 +4,13 @@ import android.content.Context
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import dev.groceryledger.domain.date.DateRange
+import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.Expense
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -36,6 +38,7 @@ class OfflineExpenseRepositoryTest {
             database = database,
             expenseDao = database.expenseDao(),
             catalogDao = database.itemCatalogDao(),
+            categoryDao = database.categoryDao(),
         )
     }
 
@@ -119,5 +122,55 @@ class OfflineExpenseRepositoryTest {
         assertEquals(0, database.expenseDao().count())
         assertEquals(0, database.itemCatalogDao().count())
         assertEquals(0L, repository.observeTotal(DateRange(date, date)).first())
+    }
+
+    @Test
+    fun renamingCategoryMovesItsEntries() = runBlocking {
+        repository.add("Milk", 6_000, date, category = "Dairy & Eggs")
+
+        assertTrue(repository.renameCategory("Dairy & Eggs", "Dairy"))
+
+        assertEquals("Dairy", repository.observeEntries(date).first().single().category)
+        val categories = repository.observeCategories().first()
+        assertTrue(categories.contains("Dairy"))
+        assertFalse(categories.contains("Dairy & Eggs"))
+    }
+
+    @Test
+    fun renamingCategoryRejectsDuplicateAndReservedNames() = runBlocking {
+        repository.add("Milk", 6_000, date, category = "Dairy")
+        repository.add("Bread", 4_000, date, category = "Bakery")
+
+        assertFalse(repository.renameCategory("Bakery", "dairy"))
+        assertFalse(repository.renameCategory("Bakery", Categories.UNCATEGORIZED))
+        assertFalse(repository.renameCategory("Bakery", "   "))
+
+        val bread = repository.observeEntries(date).first().single { it.name == "Bread" }
+        assertEquals("Bakery", bread.category)
+    }
+
+    @Test
+    fun renamingCategoryCanChangeOnlyItsCase() = runBlocking {
+        repository.add("Chips", 2_000, date, category = "Snacks")
+
+        assertTrue(repository.renameCategory("Snacks", "snacks"))
+
+        assertEquals("snacks", repository.observeEntries(date).first().single().category)
+        assertTrue(repository.observeCategories().first().contains("snacks"))
+    }
+
+    @Test
+    fun deletingCategoryMovesEntriesToUncategorized() = runBlocking {
+        repository.add("Chips", 2_000, date, category = "Snacks")
+
+        assertTrue(repository.deleteCategory("Snacks"))
+
+        assertEquals(
+            Categories.UNCATEGORIZED,
+            repository.observeEntries(date).first().single().category,
+        )
+        assertFalse(repository.observeCategories().first().contains("Snacks"))
+        assertFalse(repository.deleteCategory(Categories.UNCATEGORIZED))
+        assertFalse(repository.deleteCategory("Does not exist"))
     }
 }

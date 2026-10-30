@@ -4,9 +4,12 @@ import androidx.room.withTransaction
 import dev.groceryledger.data.local.GroceryDatabase
 import dev.groceryledger.data.local.ExpenseDao
 import dev.groceryledger.data.local.ExpenseEntity
+import dev.groceryledger.data.local.CategoryDao
+import dev.groceryledger.data.local.CategoryEntity
 import dev.groceryledger.data.local.ItemCatalogDao
 import dev.groceryledger.data.local.ItemCatalogEntity
 import dev.groceryledger.domain.date.DateRange
+import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.DailyTotal
 import dev.groceryledger.domain.model.Expense
 import dev.groceryledger.domain.model.ItemSuggestion
@@ -24,6 +27,7 @@ class OfflineExpenseRepository(
     private val database: GroceryDatabase,
     private val expenseDao: ExpenseDao,
     private val catalogDao: ItemCatalogDao,
+    private val categoryDao: CategoryDao,
 ) : ExpenseRepository {
 
     override fun observeDailyTotals(range: DateRange): Flow<List<DailyTotal>> =
@@ -61,8 +65,14 @@ class OfflineExpenseRepository(
             .distinctUntilChanged()
     }
 
-    override suspend fun add(name: String, amountPaise: Long, date: LocalDate): Expense {
+    override suspend fun add(
+        name: String,
+        amountPaise: Long,
+        date: LocalDate,
+        category: String,
+    ): Expense {
         val trimmed = validateName(name)
+        val resolvedCategory = resolveCategory(category)
         val now = System.currentTimeMillis()
         val entity = ExpenseEntity(
             entryUid = UUID.randomUUID().toString(),
@@ -72,17 +82,26 @@ class OfflineExpenseRepository(
             expenseDate = date.toEpochDay(),
             createdAt = now,
             updatedAt = now,
+            category = resolvedCategory,
         )
 
         return database.withTransaction {
+            ensureCategoryExists(resolvedCategory)
             val id = expenseDao.insert(entity)
             refreshCatalog(entity.nameNormalized)
             toDomain(entity.copy(id = id))
         }
     }
 
-    override suspend fun update(id: Long, name: String, amountPaise: Long, date: LocalDate) {
+    override suspend fun update(
+        id: Long,
+        name: String,
+        amountPaise: Long,
+        date: LocalDate,
+        category: String,
+    ) {
         val trimmed = validateName(name)
+        val resolvedCategory = resolveCategory(category)
         database.withTransaction {
             val existing = expenseDao.getById(id) ?: return@withTransaction
             val updated = existing.copy(
@@ -91,7 +110,9 @@ class OfflineExpenseRepository(
                 amountPaise = amountPaise,
                 expenseDate = date.toEpochDay(),
                 updatedAt = System.currentTimeMillis(),
+                category = resolvedCategory,
             )
+            ensureCategoryExists(resolvedCategory)
             expenseDao.update(updated)
             refreshCatalog(existing.nameNormalized)
             if (updated.nameNormalized != existing.nameNormalized) {
@@ -111,6 +132,8 @@ class OfflineExpenseRepository(
     override suspend fun restore(expense: Expense) {
         val normalized = ItemNames.normalize(expense.name)
         database.withTransaction {
+            val category = resolveCategory(expense.category)
+            ensureCategoryExists(category)
             expenseDao.insert(
                 ExpenseEntity(
                     entryUid = expense.uid,
@@ -120,9 +143,63 @@ class OfflineExpenseRepository(
                     expenseDate = expense.date.toEpochDay(),
                     createdAt = expense.createdAt,
                     updatedAt = expense.updatedAt,
+                    category = category,
                 ),
             )
             refreshCatalog(normalized)
+        }
+    }
+
+    override fun observeCategories(): Flow<List<String>> =
+        categoryDao.observeAll().map { rows -> rows.map { it.name } }
+
+    override suspend fun addCategory(name: String): Boolean {
+        val clean = Categories.sanitize(name) ?: return false
+        val normalized = clean.lowercase()
+        return database.withTransaction {
+            if (categoryDao.findByNormalizedName(normalized) != null) {
+                return@withTransaction false
+            }
+            categoryDao.insert(
+                CategoryEntity(
+                    name = clean,
+                    nameNormalized = normalized,
+                    sortOrder = (categoryDao.maxSortOrder() ?: -1) + 1,
+                    isPreset = false,
+                ),
+            )
+            true
+        }
+    }
+
+    override suspend fun renameCategory(oldName: String, newName: String): Boolean {
+        val cleanOld = Categories.normalize(oldName)
+        if (cleanOld.equals(Categories.UNCATEGORIZED, ignoreCase = true)) return false
+        val cleanNew = Categories.sanitize(newName) ?: return false
+        val normalizedNew = cleanNew.lowercase()
+
+        return database.withTransaction {
+            val existing = categoryDao.findByNormalizedName(cleanOld.lowercase())
+                ?: return@withTransaction false
+            val clash = categoryDao.findByNormalizedName(normalizedNew)
+            if (clash != null && clash.name != existing.name) return@withTransaction false
+
+            categoryDao.rename(existing.name, cleanNew, normalizedNew)
+            expenseDao.reassignCategory(existing.name, cleanNew)
+            true
+        }
+    }
+
+    override suspend fun deleteCategory(name: String): Boolean {
+        val clean = Categories.normalize(name)
+        if (clean.equals(Categories.UNCATEGORIZED, ignoreCase = true)) return false
+
+        return database.withTransaction {
+            val existing = categoryDao.findByNormalizedName(clean.lowercase())
+                ?: return@withTransaction false
+            expenseDao.reassignCategory(existing.name, Categories.UNCATEGORIZED)
+            categoryDao.delete(existing.name)
+            true
         }
     }
 
@@ -140,10 +217,12 @@ class OfflineExpenseRepository(
                 expenseDate = expense.date.toEpochDay(),
                 createdAt = if (expense.createdAt > 0) expense.createdAt else now + index,
                 updatedAt = now,
+                category = resolveCategory(expense.category),
             )
         }
 
         database.withTransaction {
+            entities.map { it.category }.distinct().forEach { ensureCategoryExists(it) }
             expenseDao.insertAll(entities)
             rebuildCatalog()
         }
@@ -200,7 +279,27 @@ class OfflineExpenseRepository(
         date = LocalDate.ofEpochDay(entity.expenseDate),
         createdAt = entity.createdAt,
         updatedAt = entity.updatedAt,
+        category = entity.category,
     )
+
+    /** Falls back to Uncategorized for blank, oversized or reserved values. */
+    private fun resolveCategory(category: String): String =
+        Categories.sanitize(category) ?: Categories.UNCATEGORIZED
+
+    /** Keeps the picker in sync with categories that arrive from an import. */
+    private suspend fun ensureCategoryExists(name: String) {
+        if (name == Categories.UNCATEGORIZED) return
+        val normalized = name.lowercase()
+        if (categoryDao.findByNormalizedName(normalized) != null) return
+        categoryDao.insert(
+            CategoryEntity(
+                name = name,
+                nameNormalized = normalized,
+                sortOrder = (categoryDao.maxSortOrder() ?: -1) + 1,
+                isPreset = false,
+            ),
+        )
+    }
 
     private fun toSuggestion(entity: ItemCatalogEntity): ItemSuggestion = ItemSuggestion(
         name = entity.name,

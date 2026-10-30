@@ -1,5 +1,6 @@
 package dev.groceryledger.data.csv
 
+import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.Expense
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertThrows
@@ -22,7 +23,7 @@ class CsvBackupTest {
         )
 
         val csv = CsvBackup.write(entries)
-        assertTrue(csv.startsWith("\uFEFFformat_version,entry_uid,date,item,amount_inr"))
+        assertTrue(csv.startsWith("\uFEFFformat_version,entry_uid,date,item,amount_inr,category"))
 
         val analysis = CsvBackup.analyze(csv, emptySet(), today, now)
         assertEquals(2, analysis.entries.size)
@@ -71,13 +72,40 @@ class CsvBackupTest {
     fun newerFormatVersionRejectsTheWholeFile() {
         val uid = UUID.randomUUID().toString()
         val csv = """
-            format_version,entry_uid,date,item,amount_inr
-            2,$uid,2026-10-29,Milk,60.00
+            format_version,entry_uid,date,item,amount_inr,category
+            3,$uid,2026-10-29,Milk,60.00,Dairy & Eggs
         """.trimIndent()
 
         assertThrows(NewerBackupException::class.java) {
             CsvBackup.analyze(csv, emptySet(), today, now)
         }
+    }
+
+    @Test
+    fun versionOneFileStillImportsAndGetsUncategorized() {
+        val uid = UUID.randomUUID().toString()
+        val csv = """
+            format_version,entry_uid,date,item,amount_inr
+            1,$uid,2026-10-29,Milk,60.00
+        """.trimIndent()
+
+        val analysis = CsvBackup.analyze(csv, emptySet(), today, now)
+
+        assertEquals(1, analysis.entries.size)
+        assertEquals(Categories.UNCATEGORIZED, analysis.entries.single().category)
+    }
+
+    @Test
+    fun categoryRoundTripsAndIsQuotedWhenNeeded() {
+        val uid = UUID.randomUUID().toString()
+        val entries = listOf(
+            expense("Rice", 95_000, "2026-10-27", uid).copy(category = "Grains, Pulses"),
+        )
+
+        val csv = CsvBackup.write(entries)
+        val analysis = CsvBackup.analyze(csv, emptySet(), today, now)
+
+        assertEquals("Grains, Pulses", analysis.entries.single().category)
     }
 
     @Test

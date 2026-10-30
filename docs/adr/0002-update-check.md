@@ -1,6 +1,6 @@
 # ADR 0002: Update checks via GitHub Releases
 
-- **Status:** Accepted
+- **Status:** Accepted; install method superseded in part by ADR 0003
 - **Date:** 29 October 2026
 
 ## Context
@@ -21,7 +21,7 @@ Use **GitHub Releases** as the update source.
 - `GET https://api.github.com/repos/chethankumarsk/personal_grocery_cost_tracker_phone_app/releases/latest`
 - Compare the release tag (e.g. `v1.1.0`) with `BuildConfig.VERSION_NAME` using numeric semver comparison.
 - Show a dialog with the version, release notes, and a button to the release page.
-- Do **not** download or install the APK in-app. The browser/download flow keeps the app free of install-package permissions.
+- Do **not** download or install the APK in-app. The browser/download flow keeps the app free of install-package permissions. *(Superseded by ADR 0003: the app now offers a verified in-app download/install and keeps the release page as fallback.)*
 - The check is **manual only** in v1 (Settings → Check for updates). No automatic/background polling.
 - The only permission added is `INTERNET`; no analytics or app server is involved.
 - Publishing a release must use a tag matching the app version, a signed APK asset, and the same `applicationId`/signing key.
@@ -32,4 +32,5 @@ Use **GitHub Releases** as the update source.
 - The app now makes one optional outbound request; About and requirements disclose this. Auto backup remains a separate OS-level off-device copy.
 - GitHub rate limits (60 unauthenticated requests/hour) are irrelevant for manual checks.
 - Until the first GitHub release is published, the UI reports “No releases yet”.
-- Automatic daily checks and in-app download/install remain future options; they require a separate decision about privacy and install permissions.
+- Automatic daily checks remain future options and need a separate privacy/UX decision. In-app download/install is now covered by ADR 0003.
+

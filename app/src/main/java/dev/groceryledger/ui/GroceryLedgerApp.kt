@@ -55,6 +55,7 @@ private fun AppContent(
     val isDaySheetOpen by viewModel.isDaySheetOpen.collectAsStateWithLifecycle()
     val editor by viewModel.editor.collectAsStateWithLifecycle()
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
+    val categories by viewModel.categories.collectAsStateWithLifecycle()
     val importPreview by viewModel.importPreview.collectAsStateWithLifecycle()
     val importFailure by viewModel.importFailure.collectAsStateWithLifecycle()
     val isImportBusy by viewModel.isImportBusy.collectAsStateWithLifecycle()
@@ -111,6 +112,7 @@ private fun AppContent(
             SettingsScreen(
                 settings = settings,
                 today = calendarState.today,
+                categories = categories,
                 importPreview = importPreview,
                 importFailure = importFailure,
                 isImportBusy = isImportBusy,
@@ -119,6 +121,8 @@ private fun AppContent(
                 onBack = { showSettings = false },
                 onWeekStartChange = viewModel::setWeekStart,
                 onThemeChange = viewModel::setTheme,
+                onRenameCategory = viewModel::renameCategory,
+                onDeleteCategory = viewModel::deleteCategory,
                 onExport = viewModel::exportTo,
                 onImport = viewModel::analyzeImport,
                 onConfirmImport = viewModel::confirmImport,
@@ -126,6 +130,9 @@ private fun AppContent(
                 onDismissImportFailure = viewModel::clearImportFailure,
                 onDeleteAll = viewModel::deleteAllData,
                 onCheckForUpdates = viewModel::checkForUpdates,
+                onDownloadUpdate = viewModel::downloadAndInstallUpdate,
+                onInstallUpdate = viewModel::installDownloadedUpdate,
+                onCancelUpdateDownload = viewModel::cancelUpdateDownload,
                 onDismissUpdate = viewModel::dismissUpdateState,
             )
         } else {
@@ -149,11 +156,14 @@ private fun AppContent(
                         EntrySheet(
                             editor = current,
                             suggestions = suggestions,
+                            categories = categories,
                             today = calendarState.today,
                             onDismiss = viewModel::closeEditor,
                             onNameChange = viewModel::updateName,
                             onAmountChange = viewModel::updateAmount,
                             onDateChange = viewModel::updateDate,
+                            onCategoryChange = viewModel::updateCategory,
+                            onAddCategory = viewModel::addCategory,
                             onSuggestionSelected = viewModel::selectSuggestion,
                             onUseLastPrice = viewModel::useLastPrice,
                             onSave = viewModel::save,

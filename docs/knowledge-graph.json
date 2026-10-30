@@ -4,14 +4,21 @@
   "project": {
     "name": "Grocery Ledger",
     "package": "dev.groceryledger",
-    "version": "1.1.1",
-    "version_code": 3,
-    "status": "v1 implemented; physical-device QA pending",
+    "version": "1.3.1",
+    "version_code": 8,
+    "status": "v1 + categories + category management + update install implemented; physical-device QA pending",
     "repository": "https://github.com/chethankumarsk/personal_grocery_cost_tracker_phone_app",
     "min_sdk": 26,
     "target_sdk": 36,
-    "stack": ["Kotlin", "Jetpack Compose", "Material 3", "Room", "DataStore", "Coroutines"],
-    "last_verified": "46 JVM tests passed; lint 0 errors; signed release APK built"
+    "stack": [
+      "Kotlin",
+      "Jetpack Compose",
+      "Material 3",
+      "Room",
+      "DataStore",
+      "Coroutines"
+    ],
+    "last_verified": "58 JVM + 5 instrumentation tests passed; lint 0 errors; signed 1.3.1 release APK built"
   },
   "read_order": [
     "AGENTS.md",
@@ -98,7 +105,7 @@
       "label": "SettingsScreen",
       "status": "done",
       "path": "app/src/main/java/dev/groceryledger/ui/settings/SettingsScreen.kt",
-      "summary": "Week start, theme, CSV export/import, delete all, update check, about, and confirmation/preview dialogs."
+      "summary": "Week start, theme, category rename/delete, CSV export/import, delete all, update check, download/install dialogs, about, and confirmation/preview dialogs."
     },
     {
       "id": "ui.theme",
@@ -154,7 +161,7 @@
       "label": "Room storage and offline repository",
       "status": "done",
       "path": "app/src/main/java/dev/groceryledger/data/local",
-      "summary": "Entries, daily totals, suggestions, CRUD, transactions, undo restore, import rebuild, and clear-all."
+      "summary": "Entries, daily totals, suggestions, categories, CRUD, transactions, undo restore, import rebuild, and clear-all. Schema v2 with an additive migration."
     },
     {
       "id": "data.catalog",
@@ -170,7 +177,7 @@
       "label": "CSV backup format",
       "status": "done",
       "path": "app/src/main/java/dev/groceryledger/data/csv",
-      "summary": "Version-1 writer/parser, BOM, RFC 4180 quoting, UUID dedupe, row validation, and newer-version rejection."
+      "summary": "Version-2 writer/parser (category column), v1 import, BOM, RFC 4180 quoting, UUID dedupe, row validation, newer-version rejection."
     },
     {
       "id": "data.backup",
@@ -194,7 +201,7 @@
       "label": "GitHub update checker",
       "status": "done",
       "path": "app/src/main/java/dev/groceryledger/data/update",
-      "summary": "Manual GitHub Releases API check, semver comparison, release metadata parsing, timeouts, and friendly failures."
+      "summary": "Manual GitHub Releases API check, semver comparison, release metadata/digest parsing, APK download with checksum and signature verification, installer handoff, timeouts, and friendly failures."
     },
     {
       "id": "feature.calendar",
@@ -258,7 +265,7 @@
       "label": "Manual update check",
       "status": "done",
       "path": "data/update + ui/settings",
-      "summary": "Settings button checks GitHub Releases, compares versions, shows notes, and opens the release page. No automatic polling."
+      "summary": "Settings button checks GitHub Releases, compares versions, shows notes, and offers Download and install plus the release page. No automatic polling."
     },
     {
       "id": "feature.settings",
@@ -330,7 +337,7 @@
       "label": "UPD-1..UPD-6",
       "status": "done",
       "path": "REQUIREMENTS.md",
-      "summary": "Manual GitHub Releases check, comparison, notes, browser handoff, and release policy implemented. Automatic checks deferred."
+      "summary": "Manual GitHub Releases check, version comparison, notes, verified in-app download/install, browser fallback, scoped permissions, and release policy implemented."
     },
     {
       "id": "req.nfr",
@@ -362,7 +369,7 @@
       "label": "Versioned CSV with stable UUIDs",
       "status": "done",
       "path": "docs/ARCHITECTURE.md",
-      "summary": "format_version=1, entry_uid dedupe, merge-only import, RFC 4180, UTF-8 BOM."
+      "summary": "format_version=2 with category, entry_uid dedupe, merge-only import, RFC 4180, UTF-8 BOM; v1 still imports."
     },
     {
       "id": "decision.signing",
@@ -378,15 +385,15 @@
       "label": "ADR 0002: GitHub Releases update check",
       "status": "done",
       "path": "docs/adr/0002-update-check.md",
-      "summary": "Manual API check, browser handoff, no in-app install, no background polling."
+      "summary": "Manual API check, browser fallback; in-app download/install added by decision.in-app-update; no background polling."
     },
     {
       "id": "test.unit",
       "type": "test",
       "label": "JVM test suite",
       "status": "done",
-      "path": "app/src/test/java/dev/groceryledger",
-      "summary": "46 tests: money, dates, ranking, Room repository, CSV, update parsing/versioning, entry-sheet state, activity, calendar/settings/add-entry UI."
+      "path": "app/src/test + app/src/androidTest",
+      "summary": "58 JVM tests plus 5 instrumentation tests (Room v1-to-v2 migration and APK verifier): money, dates, ranking, Room repository, category management, CSV v1/v2, update parsing/versioning, APK download checksum/size handling, entry-sheet state, activity, calendar/settings/add-entry UI."
     },
     {
       "id": "doc.requirements",
@@ -470,9 +477,9 @@
     {
       "id": "future.categories",
       "type": "future",
-      "label": "Categories and breakdown",
+      "label": "Category filtering and analysis",
       "status": "deferred",
-      "summary": "Optional category field plus monthly category analysis."
+      "summary": "Filter the day/month view by category and show a monthly category breakdown. Management is done."
     },
     {
       "id": "future.budget",
@@ -500,93 +507,523 @@
       "type": "future",
       "label": "Automatic update check",
       "status": "deferred",
-      "summary": "Optional daily check and non-blocking update notification; requires a privacy/UX decision."
+      "summary": "Optional daily check and non-blocking update notification; requires a privacy/UX decision. Manual in-app install is already implemented."
+    },
+    {
+      "id": "feature.categories",
+      "type": "feature",
+      "label": "Entry categories",
+      "status": "done",
+      "path": "ui/entry + ui/settings + data/local + data/csv",
+      "summary": "Optional category per entry, presets plus custom, Uncategorized default, shown in the day sheet. Settings can rename or delete categories; renames follow entries and deletes move them to Uncategorized. Schema v2 and CSV v2 (v1 still imports)."
+    },
+    {
+      "id": "feature.in-app-update",
+      "type": "feature",
+      "label": "In-app update download and install",
+      "status": "done",
+      "path": "data/update + ui/settings",
+      "summary": "Download and install from the update dialog: cache download, size/SHA-256 check, package/version/signing-certificate verification, then Android's installer. The release page remains the browser fallback."
+    },
+    {
+      "id": "decision.in-app-update",
+      "type": "decision",
+      "label": "Verified in-app update install",
+      "status": "done",
+      "path": "docs/adr/0003-in-app-updates.md",
+      "summary": "User-started download only; cache-scoped FileProvider; 100 MB cap; GitHub digest plus package/version/signature checks; REQUEST_INSTALL_PACKAGES only for the installer handoff. Browser release page kept as fallback."
     }
   ],
   "edges": [
-    { "from": "app", "to": "entry.activity", "type": "contains" },
-    { "from": "app", "to": "app.container", "type": "contains" },
-    { "from": "app", "to": "vm.main", "type": "contains" },
-    { "from": "entry.activity", "to": "ui.root", "type": "hosts" },
-    { "from": "entry.activity", "to": "app.container", "type": "uses" },
-    { "from": "ui.root", "to": "vm.main", "type": "observes" },
-    { "from": "ui.root", "to": "ui.calendar", "type": "renders" },
-    { "from": "ui.root", "to": "ui.settings", "type": "renders" },
-    { "from": "ui.calendar", "to": "vm.main", "type": "uses" },
-    { "from": "ui.calendar", "to": "ui.day-sheet", "type": "opens" },
-    { "from": "ui.calendar", "to": "ui.entry-sheet", "type": "opens" },
-    { "from": "ui.day-sheet", "to": "ui.entry-sheet", "type": "opens" },
-    { "from": "ui.entry-sheet", "to": "domain.suggestions", "type": "depends_on" },
-    { "from": "ui.entry-sheet", "to": "domain.money", "type": "depends_on" },
-    { "from": "ui.settings", "to": "vm.main", "type": "uses" },
-    { "from": "ui.settings", "to": "data.update", "type": "triggers" },
-    { "from": "vm.main", "to": "domain.repositories", "type": "depends_on" },
-    { "from": "vm.main", "to": "data.backup", "type": "depends_on" },
-    { "from": "vm.main", "to": "data.update", "type": "depends_on" },
-    { "from": "data.backup", "to": "data.csv", "type": "uses" },
-    { "from": "data.backup", "to": "domain.repositories", "type": "uses" },
-    { "from": "data.local", "to": "domain.repositories", "type": "implements" },
-    { "from": "data.local", "to": "data.catalog", "type": "maintains" },
-    { "from": "data.local", "to": "domain.dates", "type": "uses" },
-    { "from": "data.local", "to": "domain.money", "type": "stores_paise" },
-    { "from": "data.csv", "to": "domain.money", "type": "uses" },
-    { "from": "data.update", "to": "external.github-releases", "type": "queries" },
-    { "from": "data.settings", "to": "domain.repositories", "type": "implements" },
-    { "from": "feature.calendar", "to": "ui.calendar", "type": "implemented_by" },
-    { "from": "feature.calendar", "to": "domain.dates", "type": "depends_on" },
-    { "from": "feature.entries", "to": "ui.entry-sheet", "type": "implemented_by" },
-    { "from": "feature.entries", "to": "domain.money", "type": "depends_on" },
-    { "from": "feature.totals", "to": "domain.dates", "type": "depends_on" },
-    { "from": "feature.totals", "to": "data.local", "type": "depends_on" },
-    { "from": "feature.autocomplete", "to": "domain.suggestions", "type": "depends_on" },
-    { "from": "feature.autocomplete", "to": "data.catalog", "type": "depends_on" },
-    { "from": "feature.price-memory", "to": "data.catalog", "type": "depends_on" },
-    { "from": "feature.price-memory", "to": "ui.entry-sheet", "type": "surfaces_in" },
-    { "from": "feature.undo", "to": "vm.main", "type": "implemented_by" },
-    { "from": "feature.undo", "to": "data.local", "type": "restores_through" },
-    { "from": "feature.csv-backup", "to": "data.csv", "type": "implemented_by" },
-    { "from": "feature.csv-backup", "to": "data.backup", "type": "implemented_by" },
-    { "from": "feature.update-check", "to": "data.update", "type": "implemented_by" },
-    { "from": "feature.update-check", "to": "ui.settings", "type": "surfaces_in" },
-    { "from": "feature.settings", "to": "ui.settings", "type": "implemented_by" },
-    { "from": "feature.settings", "to": "data.settings", "type": "depends_on" },
-    { "from": "feature.saved-state", "to": "vm.main", "type": "implemented_by" },
-    { "from": "feature.calendar", "to": "req.calendar", "type": "implements" },
-    { "from": "feature.entries", "to": "req.entries", "type": "implements" },
-    { "from": "feature.autocomplete", "to": "req.autocomplete", "type": "implements" },
-    { "from": "feature.price-memory", "to": "req.autocomplete", "type": "implements" },
-    { "from": "feature.totals", "to": "req.totals", "type": "implements" },
-    { "from": "feature.csv-backup", "to": "req.data", "type": "implements" },
-    { "from": "feature.settings", "to": "req.settings", "type": "implements" },
-    { "from": "feature.update-check", "to": "req.updates", "type": "implements" },
-    { "from": "feature.undo", "to": "req.entries", "type": "implements" },
-    { "from": "test.unit", "to": "domain.money", "type": "tests" },
-    { "from": "test.unit", "to": "domain.dates", "type": "tests" },
-    { "from": "test.unit", "to": "domain.suggestions", "type": "tests" },
-    { "from": "test.unit", "to": "data.local", "type": "tests" },
-    { "from": "test.unit", "to": "data.csv", "type": "tests" },
-    { "from": "test.unit", "to": "data.update", "type": "tests" },
-    { "from": "test.unit", "to": "ui.root", "type": "tests" },
-    { "from": "req.nfr", "to": "test.unit", "type": "verified_by" },
-    { "from": "decision.single-module", "to": "app", "type": "shapes" },
-    { "from": "decision.csv-format", "to": "feature.csv-backup", "type": "shapes" },
-    { "from": "decision.signing", "to": "app", "type": "secures_updates_for" },
-    { "from": "decision.update-check", "to": "feature.update-check", "type": "shapes" },
-    { "from": "app", "to": "external.github-repo", "type": "published_at" },
-    { "from": "external.github-repo", "to": "external.github-releases", "type": "hosts" },
-    { "from": "doc.requirements", "to": "app", "type": "documents" },
-    { "from": "doc.readme", "to": "app", "type": "documents" },
-    { "from": "doc.architecture", "to": "app", "type": "documents" },
-    { "from": "doc.agents", "to": "app", "type": "documents" },
-    { "from": "doc.knowledge-graph", "to": "app", "type": "documents" },
-    { "from": "doc.releasing", "to": "feature.update-check", "type": "operationalizes" },
-    { "from": "status.v1", "to": "app", "type": "describes" },
-    { "from": "status.device-qa", "to": "app", "type": "blocks" },
-    { "from": "future.price-history", "to": "feature.entries", "type": "future_for" },
-    { "from": "future.categories", "to": "feature.entries", "type": "future_for" },
-    { "from": "future.budget", "to": "feature.totals", "type": "future_for" },
-    { "from": "future.quick-add", "to": "feature.autocomplete", "type": "future_for" },
-    { "from": "future.widget", "to": "feature.totals", "type": "future_for" },
-    { "from": "future.auto-update-check", "to": "feature.update-check", "type": "future_for" }
+    {
+      "from": "app",
+      "to": "entry.activity",
+      "type": "contains"
+    },
+    {
+      "from": "app",
+      "to": "app.container",
+      "type": "contains"
+    },
+    {
+      "from": "app",
+      "to": "vm.main",
+      "type": "contains"
+    },
+    {
+      "from": "entry.activity",
+      "to": "ui.root",
+      "type": "hosts"
+    },
+    {
+      "from": "entry.activity",
+      "to": "app.container",
+      "type": "uses"
+    },
+    {
+      "from": "ui.root",
+      "to": "vm.main",
+      "type": "observes"
+    },
+    {
+      "from": "ui.root",
+      "to": "ui.calendar",
+      "type": "renders"
+    },
+    {
+      "from": "ui.root",
+      "to": "ui.settings",
+      "type": "renders"
+    },
+    {
+      "from": "ui.calendar",
+      "to": "vm.main",
+      "type": "uses"
+    },
+    {
+      "from": "ui.calendar",
+      "to": "ui.day-sheet",
+      "type": "opens"
+    },
+    {
+      "from": "ui.calendar",
+      "to": "ui.entry-sheet",
+      "type": "opens"
+    },
+    {
+      "from": "ui.day-sheet",
+      "to": "ui.entry-sheet",
+      "type": "opens"
+    },
+    {
+      "from": "ui.entry-sheet",
+      "to": "domain.suggestions",
+      "type": "depends_on"
+    },
+    {
+      "from": "ui.entry-sheet",
+      "to": "domain.money",
+      "type": "depends_on"
+    },
+    {
+      "from": "ui.settings",
+      "to": "vm.main",
+      "type": "uses"
+    },
+    {
+      "from": "ui.settings",
+      "to": "data.update",
+      "type": "triggers"
+    },
+    {
+      "from": "vm.main",
+      "to": "domain.repositories",
+      "type": "depends_on"
+    },
+    {
+      "from": "vm.main",
+      "to": "data.backup",
+      "type": "depends_on"
+    },
+    {
+      "from": "vm.main",
+      "to": "data.update",
+      "type": "depends_on"
+    },
+    {
+      "from": "data.backup",
+      "to": "data.csv",
+      "type": "uses"
+    },
+    {
+      "from": "data.backup",
+      "to": "domain.repositories",
+      "type": "uses"
+    },
+    {
+      "from": "data.local",
+      "to": "domain.repositories",
+      "type": "implements"
+    },
+    {
+      "from": "data.local",
+      "to": "data.catalog",
+      "type": "maintains"
+    },
+    {
+      "from": "data.local",
+      "to": "domain.dates",
+      "type": "uses"
+    },
+    {
+      "from": "data.local",
+      "to": "domain.money",
+      "type": "stores_paise"
+    },
+    {
+      "from": "data.csv",
+      "to": "domain.money",
+      "type": "uses"
+    },
+    {
+      "from": "data.update",
+      "to": "external.github-releases",
+      "type": "queries"
+    },
+    {
+      "from": "data.settings",
+      "to": "domain.repositories",
+      "type": "implements"
+    },
+    {
+      "from": "feature.calendar",
+      "to": "ui.calendar",
+      "type": "implemented_by"
+    },
+    {
+      "from": "feature.calendar",
+      "to": "domain.dates",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.entries",
+      "to": "ui.entry-sheet",
+      "type": "implemented_by"
+    },
+    {
+      "from": "feature.entries",
+      "to": "domain.money",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.totals",
+      "to": "domain.dates",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.totals",
+      "to": "data.local",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.autocomplete",
+      "to": "domain.suggestions",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.autocomplete",
+      "to": "data.catalog",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.price-memory",
+      "to": "data.catalog",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.price-memory",
+      "to": "ui.entry-sheet",
+      "type": "surfaces_in"
+    },
+    {
+      "from": "feature.undo",
+      "to": "vm.main",
+      "type": "implemented_by"
+    },
+    {
+      "from": "feature.undo",
+      "to": "data.local",
+      "type": "restores_through"
+    },
+    {
+      "from": "feature.csv-backup",
+      "to": "data.csv",
+      "type": "implemented_by"
+    },
+    {
+      "from": "feature.csv-backup",
+      "to": "data.backup",
+      "type": "implemented_by"
+    },
+    {
+      "from": "feature.update-check",
+      "to": "data.update",
+      "type": "implemented_by"
+    },
+    {
+      "from": "feature.update-check",
+      "to": "ui.settings",
+      "type": "surfaces_in"
+    },
+    {
+      "from": "feature.settings",
+      "to": "ui.settings",
+      "type": "implemented_by"
+    },
+    {
+      "from": "feature.settings",
+      "to": "data.settings",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.saved-state",
+      "to": "vm.main",
+      "type": "implemented_by"
+    },
+    {
+      "from": "feature.calendar",
+      "to": "req.calendar",
+      "type": "implements"
+    },
+    {
+      "from": "feature.entries",
+      "to": "req.entries",
+      "type": "implements"
+    },
+    {
+      "from": "feature.autocomplete",
+      "to": "req.autocomplete",
+      "type": "implements"
+    },
+    {
+      "from": "feature.price-memory",
+      "to": "req.autocomplete",
+      "type": "implements"
+    },
+    {
+      "from": "feature.totals",
+      "to": "req.totals",
+      "type": "implements"
+    },
+    {
+      "from": "feature.csv-backup",
+      "to": "req.data",
+      "type": "implements"
+    },
+    {
+      "from": "feature.settings",
+      "to": "req.settings",
+      "type": "implements"
+    },
+    {
+      "from": "feature.update-check",
+      "to": "req.updates",
+      "type": "implements"
+    },
+    {
+      "from": "feature.undo",
+      "to": "req.entries",
+      "type": "implements"
+    },
+    {
+      "from": "test.unit",
+      "to": "domain.money",
+      "type": "tests"
+    },
+    {
+      "from": "test.unit",
+      "to": "domain.dates",
+      "type": "tests"
+    },
+    {
+      "from": "test.unit",
+      "to": "domain.suggestions",
+      "type": "tests"
+    },
+    {
+      "from": "test.unit",
+      "to": "data.local",
+      "type": "tests"
+    },
+    {
+      "from": "test.unit",
+      "to": "data.csv",
+      "type": "tests"
+    },
+    {
+      "from": "test.unit",
+      "to": "data.update",
+      "type": "tests"
+    },
+    {
+      "from": "test.unit",
+      "to": "ui.root",
+      "type": "tests"
+    },
+    {
+      "from": "req.nfr",
+      "to": "test.unit",
+      "type": "verified_by"
+    },
+    {
+      "from": "decision.single-module",
+      "to": "app",
+      "type": "shapes"
+    },
+    {
+      "from": "decision.csv-format",
+      "to": "feature.csv-backup",
+      "type": "shapes"
+    },
+    {
+      "from": "decision.signing",
+      "to": "app",
+      "type": "secures_updates_for"
+    },
+    {
+      "from": "decision.update-check",
+      "to": "feature.update-check",
+      "type": "shapes"
+    },
+    {
+      "from": "app",
+      "to": "external.github-repo",
+      "type": "published_at"
+    },
+    {
+      "from": "external.github-repo",
+      "to": "external.github-releases",
+      "type": "hosts"
+    },
+    {
+      "from": "doc.requirements",
+      "to": "app",
+      "type": "documents"
+    },
+    {
+      "from": "doc.readme",
+      "to": "app",
+      "type": "documents"
+    },
+    {
+      "from": "doc.architecture",
+      "to": "app",
+      "type": "documents"
+    },
+    {
+      "from": "doc.agents",
+      "to": "app",
+      "type": "documents"
+    },
+    {
+      "from": "doc.knowledge-graph",
+      "to": "app",
+      "type": "documents"
+    },
+    {
+      "from": "doc.releasing",
+      "to": "feature.update-check",
+      "type": "operationalizes"
+    },
+    {
+      "from": "status.v1",
+      "to": "app",
+      "type": "describes"
+    },
+    {
+      "from": "status.device-qa",
+      "to": "app",
+      "type": "blocks"
+    },
+    {
+      "from": "future.price-history",
+      "to": "feature.entries",
+      "type": "future_for"
+    },
+    {
+      "from": "future.categories",
+      "to": "feature.entries",
+      "type": "future_for"
+    },
+    {
+      "from": "future.budget",
+      "to": "feature.totals",
+      "type": "future_for"
+    },
+    {
+      "from": "future.quick-add",
+      "to": "feature.autocomplete",
+      "type": "future_for"
+    },
+    {
+      "from": "future.widget",
+      "to": "feature.totals",
+      "type": "future_for"
+    },
+    {
+      "from": "future.auto-update-check",
+      "to": "feature.update-check",
+      "type": "future_for"
+    },
+    {
+      "from": "feature.categories",
+      "to": "ui.entry-sheet",
+      "type": "implemented_by"
+    },
+    {
+      "from": "feature.categories",
+      "to": "data.local",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.categories",
+      "to": "data.csv",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.categories",
+      "to": "req.data",
+      "type": "implements"
+    },
+    {
+      "from": "feature.in-app-update",
+      "to": "data.update",
+      "type": "implemented_by"
+    },
+    {
+      "from": "feature.in-app-update",
+      "to": "ui.settings",
+      "type": "surfaces_in"
+    },
+    {
+      "from": "feature.in-app-update",
+      "to": "req.updates",
+      "type": "implements"
+    },
+    {
+      "from": "feature.in-app-update",
+      "to": "decision.in-app-update",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.in-app-update",
+      "to": "external.github-releases",
+      "type": "queries"
+    },
+    {
+      "from": "feature.in-app-update",
+      "to": "test.unit",
+      "type": "tested_by"
+    },
+    {
+      "from": "decision.in-app-update",
+      "to": "decision.update-check",
+      "type": "refines"
+    },
+    {
+      "from": "decision.in-app-update",
+      "to": "doc.releasing",
+      "type": "operationalizes"
+    },
+    {
+      "from": "feature.categories",
+      "to": "ui.settings",
+      "type": "surfaces_in"
+    },
+    {
+      "from": "feature.categories",
+      "to": "test.unit",
+      "type": "tested_by"
+    }
   ]
 }

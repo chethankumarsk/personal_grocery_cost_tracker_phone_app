@@ -7,6 +7,10 @@ data class ReleaseInfo(
     val notes: String,
     val pageUrl: String,
     val apkUrl: String?,
+    /** SHA-256 of the APK asset as reported by GitHub, if the release provides one. */
+    val apkSha256: String? = null,
+    /** Size of the APK asset in bytes as reported by GitHub. */
+    val apkSizeBytes: Long? = null,
 )
 
 sealed interface UpdateCheckResult {
@@ -21,6 +25,23 @@ enum class UpdateFailureReason {
     RATE_LIMITED,
     SERVER,
     PARSE,
+}
+
+/**
+ * Why an in-app update could not be downloaded, verified or handed to Android's installer.
+ * Verification failures are final: the bad file is deleted instead of being offered again.
+ */
+enum class UpdateInstallFailure {
+    DOWNLOAD,
+    CHECKSUM,
+    INCOMPLETE,
+    TOO_LARGE,
+    STORAGE,
+    UNREADABLE,
+    WRONG_PACKAGE,
+    NOT_NEWER,
+    SIGNATURE,
+    LAUNCH,
 }
 
 object UpdateConfig {

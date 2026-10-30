@@ -20,7 +20,9 @@ class GitHubReleaseParserTest {
           "assets": [
             {
               "name": "GroceryLedger-1.1.0-release.apk",
-              "browser_download_url": "https://github.com/example/repo/releases/download/v1.1.0/app.apk"
+              "browser_download_url": "https://github.com/example/repo/releases/download/v1.1.0/app.apk",
+              "size": 7996761,
+              "digest": "sha256:3f9f137f41d0e43bb9d6a15ab8c27226dbb73f77fea82ff893d358d3299c7555"
             }
           ]
         }
@@ -47,6 +49,36 @@ class GitHubReleaseParserTest {
             "https://github.com/example/repo/releases/download/v1.1.0/app.apk",
             release.apkUrl,
         )
+        assertEquals(7_996_761L, release.apkSizeBytes)
+        assertEquals(
+            "3f9f137f41d0e43bb9d6a15ab8c27226dbb73f77fea82ff893d358d3299c7555",
+            release.apkSha256,
+        )
+    }
+
+    @Test
+    fun missingOrMalformedDigestIsIgnored() {
+        val json = """
+            {
+              "tag_name": "v1.1.0",
+              "html_url": "https://example.test/release",
+              "assets": [
+                {
+                  "name": "app.apk",
+                  "browser_download_url": "https://example.test/app.apk",
+                  "digest": "sha256:not-a-real-digest"
+                }
+              ]
+            }
+        """.trimIndent()
+
+        val release = (
+            GitHubReleaseParser.parse(json, currentVersion = "1.0.0", repository = "example/repo")
+                as UpdateCheckResult.UpdateAvailable
+            ).release
+
+        assertNull(release.apkSha256)
+        assertNull(release.apkSizeBytes)
     }
 
     @Test

@@ -28,6 +28,7 @@ class CalendarUiTest {
     fun opensSettings() {
         composeRule.onNodeWithContentDescription("Settings").performClick()
         composeRule.onNodeWithText("Week starts on").assertExists()
+        composeRule.onNodeWithText("Categories").assertExists()
         composeRule.onNodeWithText("Export CSV").assertExists()
         composeRule.onNodeWithText("Delete all data").assertExists()
         composeRule.onNodeWithText("Check for updates").assertExists()

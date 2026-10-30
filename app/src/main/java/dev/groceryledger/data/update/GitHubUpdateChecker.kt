@@ -75,12 +75,16 @@ object GitHubReleaseParser {
         val title = json.optString("name").ifBlank { version }
 
         var apkUrl: String? = null
+        var apkSha256: String? = null
+        var apkSizeBytes: Long? = null
         val assets = json.optJSONArray("assets")
         if (assets != null) {
             for (index in 0 until assets.length()) {
                 val asset = assets.optJSONObject(index) ?: continue
                 if (asset.optString("name").endsWith(".apk", ignoreCase = true)) {
                     apkUrl = asset.optString("browser_download_url").ifBlank { null }
+                    apkSha256 = parseSha256(asset.optString("digest"))
+                    apkSizeBytes = asset.optLong("size", -1L).takeIf { it > 0 }
                     break
                 }
             }
@@ -93,12 +97,27 @@ object GitHubReleaseParser {
             notes = json.optString("body"),
             pageUrl = pageUrl,
             apkUrl = apkUrl,
+            apkSha256 = apkSha256,
+            apkSizeBytes = apkSizeBytes,
         )
 
         return if (VersionComparator.isNewer(currentVersion, tag)) {
             UpdateCheckResult.UpdateAvailable(release)
         } else {
             UpdateCheckResult.UpToDate
+        }
+    }
+
+    /**
+     * GitHub returns the asset digest as `sha256:<hex>`. Anything else is ignored: the APK is
+     * still checked against the installed app's signing certificate before installation.
+     */
+    private fun parseSha256(digest: String): String? {
+        val value = digest.trim().lowercase()
+        if (!value.startsWith("sha256:")) return null
+        val hash = value.removePrefix("sha256:")
+        return hash.takeIf { candidate ->
+            candidate.length == 64 && candidate.all { it in '0'..'9' || it in 'a'..'f' }
         }
     }
 }

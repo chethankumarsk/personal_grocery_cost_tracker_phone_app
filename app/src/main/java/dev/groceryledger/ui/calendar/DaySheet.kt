@@ -33,6 +33,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import dev.groceryledger.R
 import dev.groceryledger.domain.date.DateRanges
+import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.Expense
 import dev.groceryledger.domain.money.Money
 import dev.groceryledger.ui.DayDetail
@@ -167,11 +168,19 @@ private fun EntryRow(
             .padding(vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = entry.name,
-            style = MaterialTheme.typography.bodyLarge,
-            modifier = Modifier.weight(1f),
-        )
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = entry.name,
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            if (entry.category != Categories.UNCATEGORIZED) {
+                Text(
+                    text = entry.category,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         Text(
             text = Money.format(entry.amountPaise),
             style = MaterialTheme.typography.bodyLarge,

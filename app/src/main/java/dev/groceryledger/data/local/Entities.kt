@@ -4,6 +4,7 @@ import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
+import dev.groceryledger.domain.model.Categories
 
 @Entity(
     tableName = "expenses",
@@ -29,6 +30,27 @@ data class ExpenseEntity(
     val createdAt: Long,
     @ColumnInfo(name = "updated_at")
     val updatedAt: Long,
+    @ColumnInfo(name = "category", defaultValue = "Uncategorized")
+    val category: String = Categories.UNCATEGORIZED,
+)
+
+/**
+ * Categories available for selection. Entries store the category *name*, so this table is
+ * the picker list, not a foreign key target.
+ */
+@Entity(
+    tableName = "categories",
+    indices = [Index(value = ["name_normalized"], unique = true)],
+)
+data class CategoryEntity(
+    @PrimaryKey
+    val name: String,
+    @ColumnInfo(name = "name_normalized")
+    val nameNormalized: String,
+    @ColumnInfo(name = "sort_order")
+    val sortOrder: Int,
+    @ColumnInfo(name = "is_preset")
+    val isPreset: Boolean,
 )
 
 @Entity(

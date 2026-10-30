@@ -84,6 +84,48 @@ interface ExpenseDao {
 
     @Query("SELECT COUNT(*) FROM expenses")
     suspend fun count(): Int
+
+    @Query("UPDATE expenses SET category = :to WHERE category = :from")
+    suspend fun renameCategory(from: String, to: String)
+
+    @Query("UPDATE expenses SET category = :to WHERE category = :from")
+    suspend fun reassignCategory(from: String, to: String)
+}
+
+@Dao
+interface CategoryDao {
+    @Query("SELECT * FROM categories ORDER BY sort_order ASC, name ASC")
+    fun observeAll(): Flow<List<CategoryEntity>>
+
+    @Query("SELECT * FROM categories ORDER BY sort_order ASC, name ASC")
+    suspend fun getAll(): List<CategoryEntity>
+
+    @Query("SELECT * FROM categories WHERE name_normalized = :normalizedName LIMIT 1")
+    suspend fun findByNormalizedName(normalizedName: String): CategoryEntity?
+
+    @Query("SELECT MAX(sort_order) FROM categories")
+    suspend fun maxSortOrder(): Int?
+
+    @Query("SELECT COUNT(*) FROM expenses WHERE category = :name")
+    suspend fun countEntries(name: String): Int
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insert(category: CategoryEntity)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertAll(categories: List<CategoryEntity>)
+
+    @Query("UPDATE categories SET name = :newName, name_normalized = :newNormalized WHERE name = :oldName")
+    suspend fun rename(oldName: String, newName: String, newNormalized: String)
+
+    @Query("DELETE FROM categories WHERE name = :name")
+    suspend fun delete(name: String)
+
+    @Query("DELETE FROM categories")
+    suspend fun clear()
+
+    @Query("SELECT COUNT(*) FROM categories")
+    suspend fun count(): Int
 }
 
 @Dao

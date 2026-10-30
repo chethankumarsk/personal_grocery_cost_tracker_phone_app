@@ -1,5 +1,6 @@
 package dev.groceryledger.data.csv
 
+import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.Expense
 import dev.groceryledger.domain.money.Money
 import dev.groceryledger.domain.money.MoneyParseResult
@@ -8,16 +9,21 @@ import java.util.Locale
 import java.util.UUID
 
 object CsvBackup {
-    const val CURRENT_FORMAT_VERSION = 1
-    const val HEADER = "format_version,entry_uid,date,item,amount_inr"
+    /**
+     * v2 adds the `category` column. v1 files still import: their rows become
+     * [Categories.UNCATEGORIZED]. Older app versions reject v2 files.
+     */
+    const val CURRENT_FORMAT_VERSION = 2
+    const val HEADER = "format_version,entry_uid,date,item,amount_inr,category"
 
-    private val requiredColumns = listOf(
+    private val baseColumns = listOf(
         "format_version",
         "entry_uid",
         "date",
         "item",
         "amount_inr",
     )
+    private const val CATEGORY_COLUMN = "category"
 
     fun write(expenses: List<Expense>): String {
         val builder = StringBuilder()
@@ -32,7 +38,8 @@ object CsvBackup {
                     .append(escape(expense.uid)).append(',')
                     .append(expense.date).append(',')
                     .append(escape(expense.name)).append(',')
-                    .append(Money.formatPlain(expense.amountPaise))
+                    .append(Money.formatPlain(expense.amountPaise)).append(',')
+                    .append(escape(expense.category))
                     .append("\r\n")
             }
 
@@ -56,8 +63,9 @@ object CsvBackup {
         val header = records.first().fields.map { it.trim().lowercase(Locale.ROOT) }
         if (header.size != header.distinct().size) throw BadBackupException()
 
-        val columnIndexes = requiredColumns.associateWith { header.indexOf(it) }
-        if (columnIndexes.values.any { it < 0 }) throw BadBackupException()
+        val columnIndexes = (baseColumns + CATEGORY_COLUMN).associateWith { header.indexOf(it) }
+        if (baseColumns.any { columnIndexes.getValue(it) < 0 }) throw BadBackupException()
+        val categoryIndex = columnIndexes.getValue(CATEGORY_COLUMN)
 
         val entries = mutableListOf<Expense>()
         val errors = mutableListOf<ImportRowError>()
@@ -78,10 +86,12 @@ object CsvBackup {
                 continue
             }
             if (version > CURRENT_FORMAT_VERSION) throw NewerBackupException()
-            if (version != CURRENT_FORMAT_VERSION) {
+            if (version < 1) {
                 errors.add(ImportRowError(record.line, ImportRowErrorReason.INVALID_VERSION))
                 continue
             }
+            // v2 carries a category column; v1 files predate it.
+            if (version >= 2 && categoryIndex < 0) throw BadBackupException()
 
             val uid = runCatching {
                 UUID.fromString(field("entry_uid").trim()).toString()
@@ -115,6 +125,12 @@ object CsvBackup {
                 }
             }
 
+            val category = if (version >= 2) {
+                Categories.sanitize(field(CATEGORY_COLUMN)) ?: Categories.UNCATEGORIZED
+            } else {
+                Categories.UNCATEGORIZED
+            }
+
             if (uid in existingUids || !seenUids.add(uid)) {
                 duplicates++
                 continue
@@ -129,6 +145,7 @@ object CsvBackup {
                     date = date,
                     createdAt = nowMillis + entries.size,
                     updatedAt = nowMillis,
+                    category = category,
                 ),
             )
         }

@@ -17,10 +17,20 @@ import dev.groceryledger.data.csv.ImportAnalysis
 import dev.groceryledger.data.csv.NewerBackupException
 import dev.groceryledger.data.update.UpdateCheckResult
 import dev.groceryledger.data.update.UpdateChecker
+import dev.groceryledger.data.update.UpdateInstallFailure
+import dev.groceryledger.data.update.ApkDownloadFailure
+import dev.groceryledger.data.update.ApkDownloadResult
+import dev.groceryledger.data.update.ApkDownloader
+import dev.groceryledger.data.update.ApkInstaller
+import dev.groceryledger.data.update.ApkVerification
+import dev.groceryledger.data.update.ApkVerificationFailure
+import dev.groceryledger.data.update.ApkVerifier
+import dev.groceryledger.data.update.ReleaseInfo
 import dev.groceryledger.data.update.UpdateFailureReason
 import dev.groceryledger.domain.date.DateRange
 import dev.groceryledger.domain.date.DateRanges
 import dev.groceryledger.domain.model.AppSettings
+import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.Expense
 import dev.groceryledger.domain.model.ItemSuggestion
 import dev.groceryledger.domain.model.SpendingSummary
@@ -34,6 +44,12 @@ import dev.groceryledger.domain.time.DateProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -49,6 +65,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -58,6 +75,9 @@ class MainViewModel(
     private val settingsRepository: SettingsRepository,
     private val backupManager: CsvBackupManager,
     private val updateChecker: UpdateChecker,
+    private val apkDownloader: ApkDownloader,
+    private val apkVerifier: ApkVerifier,
+    private val apkInstaller: ApkInstaller,
     private val dateProvider: DateProvider,
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
@@ -81,6 +101,12 @@ class MainViewModel(
 
     private var lastSaveCompletedAtMs = 0L
 
+    /** Kept between attempts so cancelling Android's installer does not force a re-download. */
+    private var downloadedApk: File? = null
+    private var downloadedReleaseTag: String? = null
+    private var pendingRelease: ReleaseInfo? = null
+    private var downloadJob: Job? = null
+
     val settings: StateFlow<AppSettings> = settingsRepository.settings
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
 
@@ -91,6 +117,10 @@ class MainViewModel(
     val isImportBusy: StateFlow<Boolean> = _isImportBusy.asStateFlow()
     val updateState: StateFlow<UpdateUiState> = _updateState.asStateFlow()
     val events = _events.asSharedFlow()
+
+    /** Picker list; [Categories.UNCATEGORIZED] is prepended by the UI. */
+    val categories: StateFlow<List<String>> = repository.observeCategories()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val suggestions: StateFlow<List<ItemSuggestion>> = _editor
         .map { it?.name.orEmpty() }
@@ -219,6 +249,7 @@ class MainViewModel(
         _editor.value = EditorUiState(
             mode = EditorMode.ADD,
             date = date,
+            category = Categories.UNCATEGORIZED,
             returnToDaySheet = returnToDaySheet,
             originalDate = date,
         )
@@ -233,11 +264,13 @@ class MainViewModel(
             date = expense.date,
             name = expense.name,
             amountText = amountText,
+            category = expense.category,
             existing = expense,
             returnToDaySheet = returnToDaySheet,
             originalName = expense.name,
             originalAmountText = amountText,
             originalDate = expense.date,
+            originalCategory = expense.category,
         )
     }
 
@@ -289,6 +322,49 @@ class MainViewModel(
     fun updateDate(date: LocalDate) {
         if (date.isAfter(_today.value)) return
         _editor.update { current -> current?.copy(date = date) }
+    }
+
+    fun updateCategory(category: String) {
+        _editor.update { current -> current?.copy(category = category) }
+    }
+
+    /** Adds a category from the editor and selects it when it was accepted. */
+    fun addCategory(rawName: String) {
+        viewModelScope.launch {
+            val clean = Categories.sanitize(rawName) ?: return@launch
+            if (repository.addCategory(clean)) {
+                _editor.update { current -> current?.copy(category = clean) }
+            } else {
+                _events.emit(UiEvent(uiText(R.string.category_exists)))
+            }
+        }
+    }
+
+    fun renameCategory(oldName: String, newName: String) {
+        viewModelScope.launch {
+            val clean = Categories.sanitize(newName)
+            val renamed = clean != null && repository.renameCategory(oldName, clean)
+            _events.emit(
+                UiEvent(
+                    uiText(
+                        if (renamed) R.string.category_renamed else R.string.category_rename_failed,
+                    ),
+                ),
+            )
+        }
+    }
+
+    fun deleteCategory(name: String) {
+        viewModelScope.launch {
+            val deleted = repository.deleteCategory(name)
+            _events.emit(
+                UiEvent(
+                    uiText(
+                        if (deleted) R.string.category_deleted else R.string.category_delete_failed,
+                    ),
+                ),
+            )
+        }
     }
 
     fun save() = saveInternal(addAnother = false)
@@ -411,7 +487,8 @@ class MainViewModel(
     }
 
     fun checkForUpdates() {
-        if (_updateState.value == UpdateUiState.Checking) return
+        val current = _updateState.value
+        if (current == UpdateUiState.Checking || current is UpdateUiState.Downloading) return
 
         _updateState.value = UpdateUiState.Checking
         viewModelScope.launch {
@@ -437,7 +514,138 @@ class MainViewModel(
         }
     }
 
+    /**
+     * Downloads the release APK and, when it is verified, hands it to Android's installer.
+     *
+     * A verified file is kept until a different release is offered, so returning from a
+     * cancelled system-installer screen and tapping again does not download it twice.
+     */
+    fun downloadAndInstallUpdate() {
+        val release = (_updateState.value as? UpdateUiState.UpdateAvailable)?.release
+            ?: pendingRelease
+            ?: return
+        if (release.apkUrl.isNullOrBlank()) {
+            _events.tryEmit(UiEvent(uiText(R.string.update_no_apk_asset)))
+            return
+        }
+        if (downloadJob?.isActive == true) return
+
+        pendingRelease = release
+        val cached = downloadedApk
+        if (cached != null && cached.isFile && downloadedReleaseTag == release.tag) {
+            downloadJob = viewModelScope.launch {
+                when (val verification = verify(cached)) {
+                    ApkVerification.Valid -> beginInstall()
+                    is ApkVerification.Invalid -> {
+                        cached.delete()
+                        downloadedApk = null
+                        downloadedReleaseTag = null
+                        _updateState.value = UpdateUiState.InstallFailed(
+                            release,
+                            verification.reason.toInstallFailure(),
+                        )
+                    }
+                }
+            }
+            return
+        }
+
+        downloadJob = viewModelScope.launch { downloadFresh(release) }
+    }
+
+    /** Retries after the user grants "install unknown apps" and returns to the app. */
+    fun installDownloadedUpdate() {
+        beginInstall()
+    }
+
+    fun cancelUpdateDownload() {
+        downloadJob?.cancel()
+        downloadJob = null
+        _updateState.value = UpdateUiState.Idle
+    }
+
+    private suspend fun downloadFresh(release: ReleaseInfo) {
+        val url = release.apkUrl ?: return
+        _updateState.value = UpdateUiState.Downloading(release.versionName, 0)
+
+        val result = try {
+            apkDownloader.download(
+                url = url,
+                expectedSha256 = release.apkSha256,
+                expectedSizeBytes = release.apkSizeBytes,
+            ) { percent ->
+                if (_updateState.value is UpdateUiState.Downloading) {
+                    _updateState.value = UpdateUiState.Downloading(release.versionName, percent)
+                }
+            }
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (_: Exception) {
+            ApkDownloadResult.Failure(ApkDownloadFailure.NETWORK)
+        }
+
+        currentCoroutineContext().ensureActive()
+
+        when (result) {
+            is ApkDownloadResult.Failure -> {
+                downloadedApk = null
+                downloadedReleaseTag = null
+                _updateState.value = UpdateUiState.InstallFailed(
+                    release,
+                    result.reason.toInstallFailure(),
+                )
+            }
+            is ApkDownloadResult.Success -> {
+                when (val verification = verify(result.file)) {
+                    ApkVerification.Valid -> {
+                        downloadedApk = result.file
+                        downloadedReleaseTag = release.tag
+                        beginInstall()
+                    }
+                    is ApkVerification.Invalid -> {
+                        result.file.delete()
+                        downloadedApk = null
+                        downloadedReleaseTag = null
+                        _updateState.value = UpdateUiState.InstallFailed(
+                            release,
+                            verification.reason.toInstallFailure(),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun verify(apk: File): ApkVerification =
+        withContext(Dispatchers.IO) { apkVerifier.verify(apk) }
+
+    private fun beginInstall() {
+        val apk = downloadedApk
+        val release = pendingRelease
+        if (apk == null || release == null) {
+            downloadedApk = null
+            downloadedReleaseTag = null
+            _updateState.value = UpdateUiState.Idle
+            return
+        }
+
+        if (!apkInstaller.canInstallPackages()) {
+            _updateState.value = UpdateUiState.InstallPermissionRequired(release.versionName)
+            return
+        }
+        if (apkInstaller.promptInstall(apk)) {
+            _updateState.value = UpdateUiState.Idle
+        } else {
+            _updateState.value = UpdateUiState.InstallFailed(
+                release,
+                UpdateInstallFailure.LAUNCH,
+            )
+        }
+    }
+
     fun dismissUpdateState() {
+        downloadJob?.cancel()
+        downloadJob = null
         _updateState.value = UpdateUiState.Idle
     }
 
@@ -483,12 +691,13 @@ class MainViewModel(
         viewModelScope.launch {
             try {
                 when (validated.mode) {
-                    EditorMode.ADD -> repository.add(name, amount, date)
+                    EditorMode.ADD -> repository.add(name, amount, date, validated.category)
                     EditorMode.EDIT -> repository.update(
                         id = requireNotNull(validated.existing).id,
                         name = name,
                         amountPaise = amount,
                         date = date,
+                        category = validated.category,
                     )
                 }
 
@@ -496,6 +705,7 @@ class MainViewModel(
                     _editor.value = EditorUiState(
                         mode = EditorMode.ADD,
                         date = date,
+                        category = validated.category,
                         returnToDaySheet = validated.returnToDaySheet,
                         originalDate = date,
                     )
@@ -583,6 +793,26 @@ class MainViewModel(
         val weekStart: WeekStart,
     )
 
+    private fun ApkDownloadFailure.toInstallFailure(): UpdateInstallFailure = when (this) {
+        ApkDownloadFailure.NO_APK,
+        ApkDownloadFailure.NETWORK,
+        ApkDownloadFailure.HTTP,
+        -> UpdateInstallFailure.DOWNLOAD
+        ApkDownloadFailure.EMPTY,
+        ApkDownloadFailure.SIZE_MISMATCH,
+        -> UpdateInstallFailure.INCOMPLETE
+        ApkDownloadFailure.TOO_LARGE -> UpdateInstallFailure.TOO_LARGE
+        ApkDownloadFailure.STORAGE -> UpdateInstallFailure.STORAGE
+        ApkDownloadFailure.CHECKSUM -> UpdateInstallFailure.CHECKSUM
+    }
+
+    private fun ApkVerificationFailure.toInstallFailure(): UpdateInstallFailure = when (this) {
+        ApkVerificationFailure.UNREADABLE -> UpdateInstallFailure.UNREADABLE
+        ApkVerificationFailure.WRONG_PACKAGE -> UpdateInstallFailure.WRONG_PACKAGE
+        ApkVerificationFailure.NOT_NEWER -> UpdateInstallFailure.NOT_NEWER
+        ApkVerificationFailure.SIGNATURE_MISMATCH -> UpdateInstallFailure.SIGNATURE
+    }
+
     private companion object {
         const val KEY_SELECTED_DATE = "selected_date"
         const val SAVE_SETTLE_MS = 350L
@@ -613,6 +843,9 @@ class MainViewModelFactory(
             settingsRepository = container.settingsRepository,
             backupManager = container.backupManager,
             updateChecker = container.updateChecker,
+            apkDownloader = container.apkDownloader,
+            apkVerifier = container.apkVerifier,
+            apkInstaller = container.apkInstaller,
             dateProvider = container.dateProvider,
             savedStateHandle = savedStateHandle,
         ) as T

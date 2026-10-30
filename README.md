@@ -3,7 +3,7 @@
 A small, offline-first Android app for tracking grocery spending in INR. The home screen is a calendar; each day holds item entries, and the selected day shows day, week, and month totals. Item names autocomplete from previous purchases, including the last price paid.
 
 - **Package:** `dev.groceryledger`
-- **Version:** 1.1.1 (versionCode 3)
+- **Version:** 1.3.1 (versionCode 8)
 - **Platform:** Android 8.0+ (minSdk 26), compile/target SDK 36
 - **UI:** Kotlin + Jetpack Compose + Material 3
 - **Storage:** Room + DataStore, entirely on-device
@@ -13,7 +13,7 @@ A small, offline-first Android app for tracking grocery spending in INR. The hom
 
 ## Status
 
-The v1 feature set and the manual GitHub update check are implemented. 46 JVM tests pass, lint reports 0 errors, and a signed 1.1.1 release APK builds. Manual QA on a physical phone is still recommended before daily use.
+The v1 feature set, categories with Settings management, and both update paths are implemented. 58 JVM tests and 5 instrumentation tests pass, lint reports 0 errors, and a signed 1.3.1 release APK builds. Manual QA on a physical phone is still recommended before daily use.
 
 ## Features
 
@@ -26,8 +26,11 @@ The v1 feature set and the manual GitHub update check are implemented. 46 JVM te
 - "Save & add another" for entering a whole shopping trip quickly.
 - Settings for week start (Monday/Sunday) and theme (system/light/dark).
 - CSV export and duplicate-safe import, including versioned backups.
-- Manual "Check for updates" against GitHub Releases, with version comparison and a browser handoff.
-- No accounts, ads, or analytics. The only network feature is the user-initiated update check.
+- Categories per entry: presets plus your own, optional with `Uncategorized` as the default, shown in the day sheet.
+- Category management in Settings: rename a category (entries follow) or delete it (entries move to Uncategorized), with confirmation.
+- Manual "Check for updates" against GitHub Releases, with version comparison.
+- In-app **Download and install** (checksum + signing-key verified, Android's installer confirms) or **Open release page** as the browser fallback.
+- No accounts, ads, or analytics. Network is used only when you check for updates or download one.
 
 ## Project layout
 
@@ -37,7 +40,7 @@ app/src/main/java/dev/groceryledger/
 │   ├── local/        Room entities, DAOs, database, repository
 │   ├── csv/          CSV writer/parser, import models
 │   ├── backup/       File picker export/import manager
-│   ├── update/       GitHub Releases check and version comparison
+│   ├── update/       GitHub release check, APK download/verify/install, version comparison
 │   └── settings/     DataStore preferences
 ├── domain/
 │   ├── model/        Expense, totals, suggestions, settings
@@ -83,7 +86,7 @@ Outputs:
 
 - Debug: `app/build/outputs/apk/debug/app-debug.apk` (package suffix `.debug`, so it can coexist with release builds).
 - Release: `app/build/outputs/apk/release/app-release.apk` (package `dev.groceryledger`).
-- A convenient signed copy is also at `dist/GroceryLedger-1.1.1-release.apk` with a checksum in `dist/README.txt`.
+- A convenient signed copy is also at `dist/GroceryLedger-1.3.1-release.apk` with a checksum in `dist/README.txt`.
 
 Install on a connected phone with USB debugging:
 
@@ -114,32 +117,35 @@ Debug APKs use `dev.groceryledger.debug` and a debug key; they are for developme
 The app can check for updates from **Settings → Check for updates**.
 
 - Source: the public repository's GitHub Releases (`releases/latest`), not raw Git tags.
-- A release tag must look like `v1.1.0`; the app compares it numerically with its installed version.
-- The dialog shows the latest version and release notes, then opens the GitHub release page in the browser. The app does not download or install an APK itself, so it does not need install-package permissions.
-- Checks are manual only in v1. No background polling and no analytics.
-- Release `v1.1.0` is published with the signed APK. An app installed at 1.1.0 reports "You're up to date"; the update dialog appears once a newer tag (e.g. `v1.1.1`) is published.
-- Publish the APK as a GitHub release asset; see [docs/RELEASING.md](docs/RELEASING.md).
+- A release tag must look like `v1.3.1`; the app compares it numerically with its installed version.
+- The dialog shows the latest version and release notes, with two choices:
+  - **Download and install** downloads the APK asset into the app cache, verifies its size and GitHub's SHA-256 digest (when present), then verifies the package name, a higher `versionCode`, and that it is signed with the same key as the installed app. Android's package installer then shows its own confirmation. The first time, Android asks you to allow installs from Grocery Ledger.
+  - **Open release page** is the previous browser flow: open the GitHub release and install the signed APK yourself. It remains available when a release has no APK asset or the in-app path fails.
+- The app never installs silently and never updates itself in the background.
+- Checks are manual only. No background polling and no analytics.
+- The latest published release is `v1.1.1`. Install 1.3.1 manually once (1.2.0 predates the button); after that, publishing a newer tag such as `v1.3.2` makes **Download and install** testable end to end.
+- Publish the APK as a GitHub release asset; GitHub supplies the SHA-256 digest used for verification. See [docs/RELEASING.md](docs/RELEASING.md).
 
-The app requests `INTERNET` permission solely for this check.
+The app requests `INTERNET` for the update check/download and `REQUEST_INSTALL_PACKAGES` solely so the in-app path can hand a verified APK to Android's installer.
 
 ## Data, backup, and privacy
 
 - Data is stored in a local Room database and DataStore preferences.
-- The app works offline for all core features. The only outbound request is the manual GitHub update check; it sends no spending data.
+- The app works offline for all core features. Outbound requests happen only for the manual GitHub update check and the update download you explicitly start; they send no spending data.
 - Android Auto Backup is enabled; if system backup is enabled, Android may copy app data to the user's Google account. This is disclosed in Settings → About.
 - CSV export is the explicit backup. Import merges by `entry_uid`, skips duplicates, and never deletes or overwrites existing entries.
 - "Delete all data" clears entries and suggestion history after confirmation and offers to export first.
 - Data is never auto-expired.
 
-CSV format (v1):
+CSV format (v2):
 
 ```csv
-format_version,entry_uid,date,item,amount_inr
-1,<uuid>,2026-10-29,Milk,60.00
+format_version,entry_uid,date,item,amount_inr,category
+2,<uuid>,2026-10-29,Milk,60.00,Dairy & Eggs
 ```
 
 - UTF-8 with BOM, RFC 4180 quoting.
-- `format_version` starts at 1; import accepts older versions and rejects newer versions with an "update the app" message.
+- `format_version` is 2; import accepts v1 (rows become `Uncategorized`) and rejects newer versions with an "update the app" message. v2 backups cannot be read by app versions before 1.2.0.
 - Import previews new/duplicate/invalid row counts and reports bad lines.
 
 ## Tests
@@ -148,15 +154,24 @@ format_version,entry_uid,date,item,amount_inr
 .\gradlew.bat :app:testDebugUnitTest
 ```
 
-Coverage includes (46 tests):
+Instrumented tests (Room migration + APK verifier) need a connected device or emulator:
+
+```powershell
+.\gradlew.bat :app:connectedDebugAndroidTest
+```
+
+Coverage includes (58 tests):
 
 - INR parsing, Indian digit grouping, compact cell formatting.
 - Week/month boundaries, including month/year-crossing weeks.
 - Suggestion ranking.
 - CSV round-trip, duplicate/version/invalid-row handling.
 - Room repository totals, catalog maintenance, delete/restore, import rebuild.
-- Update-version comparison and GitHub release JSON parsing.
+- Category rename/delete, entry reassignment, and duplicate/reserved name rejection.
+- Update-version comparison, GitHub release JSON parsing (including digest/size), and APK download checksum/size handling.
 - Robolectric activity launch, settings screen, add-sheet, and add-entry flow.
+- Room v1→v2 migration (instrumentation): existing entries survive and become Uncategorized; presets are seeded.
+- APK verifier (instrumentation): accepts a correctly signed newer APK and rejects same-version, wrong-package, and non-APK files.
 
 There is no emulator/device attached in this environment, so performance and visual QA on a real phone remain open.
 
