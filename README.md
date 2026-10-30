@@ -3,7 +3,7 @@
 A small, offline-first Android app for tracking grocery spending in INR. The home screen is a calendar; each day holds item entries, and the selected day shows day, week, and month totals. Item names autocomplete from previous purchases, including the last price paid.
 
 - **Package:** `dev.groceryledger`
-- **Version:** 1.1.0 (versionCode 2)
+- **Version:** 1.1.1 (versionCode 3)
 - **Platform:** Android 8.0+ (minSdk 26), compile/target SDK 36
 - **UI:** Kotlin + Jetpack Compose + Material 3
 - **Storage:** Room + DataStore, entirely on-device
@@ -13,7 +13,7 @@ A small, offline-first Android app for tracking grocery spending in INR. The hom
 
 ## Status
 
-The v1 feature set and the manual GitHub update check are implemented. 42 JVM tests pass, lint reports 0 errors, and a signed 1.1.0 release APK builds. Manual QA on a physical phone is still recommended before daily use.
+The v1 feature set and the manual GitHub update check are implemented. 46 JVM tests pass, lint reports 0 errors, and a signed 1.1.1 release APK builds. Manual QA on a physical phone is still recommended before daily use.
 
 ## Features
 
@@ -83,7 +83,7 @@ Outputs:
 
 - Debug: `app/build/outputs/apk/debug/app-debug.apk` (package suffix `.debug`, so it can coexist with release builds).
 - Release: `app/build/outputs/apk/release/app-release.apk` (package `dev.groceryledger`).
-- A convenient signed copy is also at `dist/GroceryLedger-1.1.0-release.apk` with a checksum in `dist/README.txt`.
+- A convenient signed copy is also at `dist/GroceryLedger-1.1.1-release.apk` with a checksum in `dist/README.txt`.
 
 Install on a connected phone with USB debugging:
 
@@ -117,7 +117,7 @@ The app can check for updates from **Settings → Check for updates**.
 - A release tag must look like `v1.1.0`; the app compares it numerically with its installed version.
 - The dialog shows the latest version and release notes, then opens the GitHub release page in the browser. The app does not download or install an APK itself, so it does not need install-package permissions.
 - Checks are manual only in v1. No background polling and no analytics.
-- No releases are published yet, so the first check currently reports "No releases yet".
+- Release `v1.1.0` is published with the signed APK. An app installed at 1.1.0 reports "You're up to date"; the update dialog appears once a newer tag (e.g. `v1.1.1`) is published.
 - Publish the APK as a GitHub release asset; see [docs/RELEASING.md](docs/RELEASING.md).
 
 The app requests `INTERNET` permission solely for this check.
@@ -148,7 +148,7 @@ format_version,entry_uid,date,item,amount_inr
 .\gradlew.bat :app:testDebugUnitTest
 ```
 
-Coverage includes (42 tests):
+Coverage includes (46 tests):
 
 - INR parsing, Indian digit grouping, compact cell formatting.
 - Week/month boundaries, including month/year-crossing weeks.

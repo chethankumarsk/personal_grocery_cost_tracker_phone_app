@@ -172,7 +172,6 @@ fun EntrySheet(
                     },
                 )
             }
-
             Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(
@@ -254,6 +253,10 @@ fun EntrySheet(
             }
 
             if (editor.mode == EditorMode.ADD) {
+                Spacer(Modifier.height(8.dp))
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
+                )
                 TextButton(
                     onClick = onSaveAndAddAnother,
                     enabled = !editor.isSaving,
@@ -348,12 +351,19 @@ private fun SuggestionPanel(
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 4.dp),
+            .padding(top = 4.dp)
+            // A constant height keeps the sheet from resizing on every keystroke.
+            // The list itself scrolls when there are more matches than fit.
+            .height(SUGGESTION_PANEL_HEIGHT),
         shape = RoundedCornerShape(12.dp),
         tonalElevation = 2.dp,
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
     ) {
-        Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Column(
+            modifier = Modifier
+                .verticalScroll(rememberScrollState())
+                .padding(vertical = 8.dp),
+        ) {
             Text(
                 text = stringResource(R.string.previous_items),
                 style = MaterialTheme.typography.labelSmall,
@@ -409,3 +419,13 @@ private fun SuggestionPanel(
         }
     }
 }
+
+/**
+ * Fixed height of the suggestion panel while it is visible.
+ *
+ * The panel is inserted inline in a content-sized modal sheet, so letting its height
+ * follow the number of matches made the whole sheet grow and shrink on every keystroke.
+ * That moved the fields and buttons under the user's finger. Keeping the height constant
+ * (with internal scrolling for the rest of the list) keeps the sheet still while typing.
+ */
+private val SUGGESTION_PANEL_HEIGHT = 236.dp

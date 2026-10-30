@@ -1,6 +1,7 @@
 package dev.groceryledger.ui
 
 import android.net.Uri
+import android.os.SystemClock
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -77,6 +78,8 @@ class MainViewModel(
     private val _isImportBusy = MutableStateFlow(false)
     private val _updateState = MutableStateFlow<UpdateUiState>(UpdateUiState.Idle)
     private val _events = MutableSharedFlow<UiEvent>(extraBufferCapacity = 16)
+
+    private var lastSaveCompletedAtMs = 0L
 
     val settings: StateFlow<AppSettings> = settingsRepository.settings
         .stateIn(viewModelScope, SharingStarted.Eagerly, AppSettings())
@@ -203,6 +206,14 @@ class MainViewModel(
 
     fun openAdd(returnToDaySheet: Boolean = false) {
         if (_editor.value != null) return
+        // The sheet closes the instant a save completes. A double tap (or a tap that
+        // lands just as the sheet disappears) would otherwise hit the "Add item" button
+        // that the sheet was covering and immediately reopen a blank form.
+        if (lastSaveCompletedAtMs != 0L &&
+            SystemClock.elapsedRealtime() - lastSaveCompletedAtMs < SAVE_SETTLE_MS
+        ) {
+            return
+        }
         _isDaySheetOpen.value = false
         val date = _selectedDate.value.takeUnless { it.isAfter(_today.value) } ?: _today.value
         _editor.value = EditorUiState(
@@ -495,6 +506,7 @@ class MainViewModel(
                         _isDaySheetOpen.value = true
                     }
                 }
+                lastSaveCompletedAtMs = SystemClock.elapsedRealtime()
             } catch (_: Exception) {
                 _editor.update { it?.copy(isSaving = false) }
                 _events.emit(UiEvent(uiText(R.string.save_failed)))
@@ -573,6 +585,7 @@ class MainViewModel(
 
     private companion object {
         const val KEY_SELECTED_DATE = "selected_date"
+        const val SAVE_SETTLE_MS = 350L
     }
 }
 

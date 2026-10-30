@@ -110,7 +110,7 @@ JVM tests use JUnit 4 + Robolectric:
 - GitHub release JSON parsing tests.
 - Compose/Robolectric smoke tests for activity launch, settings, opening the add sheet, and saving an entry.
 
-There are 42 tests. Instrumented tests are configured but require a device/emulator. Physical-device performance and visual checks are still pending.
+There are 46 tests. Instrumented tests are configured but require a device/emulator. Physical-device performance and visual checks are still pending.
 
 ## Update path
 

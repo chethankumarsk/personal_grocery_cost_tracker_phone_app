@@ -4,14 +4,14 @@
   "project": {
     "name": "Grocery Ledger",
     "package": "dev.groceryledger",
-    "version": "1.1.0",
-    "version_code": 2,
+    "version": "1.1.1",
+    "version_code": 3,
     "status": "v1 implemented; physical-device QA pending",
     "repository": "https://github.com/chethankumarsk/personal_grocery_cost_tracker_phone_app",
     "min_sdk": 26,
     "target_sdk": 36,
     "stack": ["Kotlin", "Jetpack Compose", "Material 3", "Room", "DataStore", "Coroutines"],
-    "last_verified": "42 JVM tests passed; lint 0 errors; signed release APK built"
+    "last_verified": "46 JVM tests passed; lint 0 errors; signed release APK built"
   },
   "read_order": [
     "AGENTS.md",
@@ -386,7 +386,7 @@
       "label": "JVM test suite",
       "status": "done",
       "path": "app/src/test/java/dev/groceryledger",
-      "summary": "42 tests: money, dates, ranking, Room repository, CSV, update parsing/versioning, activity, calendar/settings/add-entry UI."
+      "summary": "46 tests: money, dates, ranking, Room repository, CSV, update parsing/versioning, entry-sheet state, activity, calendar/settings/add-entry UI."
     },
     {
       "id": "doc.requirements",
@@ -444,7 +444,7 @@
       "label": "GitHub Releases API/page",
       "status": "done",
       "path": "https://github.com/chethankumarsk/personal_grocery_cost_tracker_phone_app/releases",
-      "summary": "Update source. Currently no releases are published."
+      "summary": "Update source. Release v1.1.0 is published with a signed APK asset and is marked latest."
     },
     {
       "id": "status.v1",
@@ -458,7 +458,7 @@
       "type": "status",
       "label": "Physical-device QA",
       "status": "pending",
-      "summary": "Visual, performance, accessibility scaling, and install-over-update checks on a real phone."
+      "summary": "Visual, performance, accessibility scaling, and install-over-update checks on a real phone. Emulator (AVD gl36, API 36, AEHD) UI automation passes 5/5, including the add-entry sheet regressions; a physical device is still outstanding."
     },
     {
       "id": "future.price-history",

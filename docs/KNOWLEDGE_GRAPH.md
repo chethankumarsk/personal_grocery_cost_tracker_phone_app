@@ -10,7 +10,7 @@ This is the map for LLM sessions and humans joining the project. It complements 
 
 Last updated: 29 October 2026.
 
-Current release: **1.1.0** (versionCode 2). The manual GitHub update check is implemented; no releases are published yet.
+Current release: **1.1.1** (versionCode 3). The manual GitHub update check is implemented; `v1.1.0` is published on GitHub, and `v1.1.1` is built locally and not yet published.
 
 ## How to use it in a new session
 
@@ -74,7 +74,7 @@ flowchart TD
 | Settings: week start, theme, delete all, about | Done | `ui/settings/SettingsScreen.kt` |
 | Manual GitHub Releases update check | Done | `data/update/`, `ui/settings/` |
 | Signed release build, stable package/key, versioning | Done | `app/build.gradle.kts`, keystore outside repo |
-| Unit, Room, CSV, update, and Compose/Robolectric tests | Done — 42 tests | `app/src/test/` |
+| Unit, Room, CSV, update, and Compose/Robolectric tests | Done — 46 tests | `app/src/test/` |
 | Lint / build | Done — 0 lint errors | `./gradlew lintDebug` |
 | Physical-device visual/performance QA | Pending | Needs a real phone |
 | Automatic update checks | Deferred | Decision needed on privacy/UX |
@@ -118,7 +118,7 @@ Settings “Check for updates” → `GitHubUpdateChecker` → GitHub `/releases
 - Repository: <https://github.com/chethankumarsk/personal_grocery_cost_tracker_phone_app>
 - Releases: <https://github.com/chethankumarsk/personal_grocery_cost_tracker_phone_app/releases>
 - Update API: `https://api.github.com/repos/chethankumarsk/personal_grocery_cost_tracker_phone_app/releases/latest`
-- No releases are published yet. Until one exists, the app shows “No releases yet”.
+- Published release: **v1.1.0** (29 October 2026) with `GroceryLedger-1.1.0-release.apk`, SHA-256 `027e7416228dcb7893d76778e60182fa99257e7ca8c33e3c7cb667992b7f8ef1`.
 - GitHub Releases is preferred over raw Git tags because it provides release notes, a stable latest release, and a signed APK asset.
 
 ## Maintaining the graph

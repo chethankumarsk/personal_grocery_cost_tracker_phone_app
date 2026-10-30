@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1 — 29 October 2026
+
+- Fixed the add-entry sheet growing and shrinking on every keystroke, which made it look like the "Add entry" sheet kept reopening and moved the fields and buttons under the finger. The suggestion list now has a fixed height and scrolls internally.
+- Fixed a blank "Add entry" form appearing right after saving. The two save actions are separated by a divider, and a tap that lands in the instant after a save can no longer reopen the sheet.
+- Added regression tests for both cases.
+
 ## 1.1.0 — 29 October 2026
 
 - Added **Check for updates** in Settings.

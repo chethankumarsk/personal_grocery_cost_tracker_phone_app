@@ -22,7 +22,7 @@ python tools/knowledge_graph.py --status pending
 
 - App: **Grocery Ledger**
 - Package / application ID: **`dev.groceryledger`**
-- Current version: **1.1.0** / versionCode **2**
+- Current version: **1.1.1** / versionCode **3**
 - Repository: `https://github.com/chethankumarsk/personal_grocery_cost_tracker_phone_app`
 - Platform: Android 8.0+ (minSdk 26), compile/target SDK 36
 - Stack: Kotlin, Jetpack Compose, Material 3, Room, DataStore, coroutines
@@ -65,17 +65,21 @@ $env:JAVA_HOME = "C:\Users\Administrator\toolchains\jdk-21.0.12.1+1"
 
 - Debug APK: `app/build/outputs/apk/debug/app-debug.apk` (package `dev.groceryledger.debug`)
 - Release APK: `app/build/outputs/apk/release/app-release.apk` (package `dev.groceryledger`)
-- Convenience copy: `dist/GroceryLedger-1.1.0-release.apk`
+- Convenience copy: `dist/GroceryLedger-1.1.1-release.apk`
 
 Use a release-signed APK for real data. Debug builds cannot be updated into release builds.
 
 ## Current status
 
 - v1 feature set is implemented: calendar, day/week/month totals, add/edit/delete/undo, autocomplete + last price, CSV export/import, settings, update check.
-- 42 JVM tests pass; lint has 0 errors.
+- 46 JVM tests pass; lint has 0 errors.
 - Signed release APK builds.
 - Physical-device visual/performance QA is pending.
-- GitHub repository currently has **no published releases**, so the update checker reports “No releases yet” until one is published.
+- Emulator QA passes: AVD `gl36` (Android 16 / API 36, AEHD 2.2) runs the UiAutomator suite in
+  `D:\githubProjects\grocery_ledger_avd_aehd_automation` — 5/5, including the add-entry sheet
+  layout regressions. Physical-device QA is still outstanding.
+- GitHub release **v1.1.0** is published (signed APK asset, release notes, marked latest). The update checker finds it; an app already on 1.1.0 reports "You're up to date".
+- To exercise the "update available" path, publish a newer tag (e.g. `v1.1.1`) from an app installed at 1.1.0.
 
 ## When making a change
 

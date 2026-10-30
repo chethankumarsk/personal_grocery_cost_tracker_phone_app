@@ -9,13 +9,14 @@
 ## 0. Implementation status (29 October 2026)
 
 - v1 and the manual GitHub update check are implemented in Kotlin + Jetpack Compose with Room and DataStore.
-- JVM test suite: 42 tests covering domain logic, CSV, Room repository behavior, update parsing/versioning, activity launch, settings, and add-entry/calendar UI flows.
+- JVM test suite: 46 tests covering domain logic, CSV, Room repository behavior, update parsing/versioning, entry-sheet state, activity launch, settings, and add-entry/calendar UI flows.
 - Debug and signed release APKs build; `lintDebug` reports no errors.
-- Release package: `dev.groceryledger`; version 1.1.0 / versionCode 2; minSdk 26, compile/target SDK 36.
+- Release package: `dev.groceryledger`; version 1.1.1 / versionCode 3; minSdk 26, compile/target SDK 36.
 - Release keystore created outside the repository; the first real install should use the signed release APK.
 - Network is used only for the user-initiated GitHub Releases update check.
 - LLM/developer context: `AGENTS.md`, `docs/KNOWLEDGE_GRAPH.md`, and the machine-readable `docs/knowledge-graph.json`.
-- Remaining: manual visual/performance QA on a physical Android phone and publishing the first GitHub release.
+- GitHub release **v1.1.0** is published with the signed APK and release notes; the update checker resolves it.
+- Remaining: manual visual/performance QA on a physical Android phone.
 
 ---
 
@@ -378,7 +379,7 @@ Calendar (home)
 | Item | Status |
 | --- | --- |
 | Physical-device visual and performance QA | Pending |
-| Publish the first GitHub release (`v1.1.0` or later) | Pending |
+| Publish the first GitHub release (`v1.1.0` or later) | Done — `v1.1.0` published with signed APK |
 | Optional Play Store publication | Not planned for v1 |
 
 ## 14. Recommended future enhancements
@@ -461,7 +462,7 @@ When adding a feature or field:
 ## 16. Definition of done (v1)
 
 - All **Must** requirements implemented and verified where device testing is not required.
-- Unit, database, CSV, update, and UI tests pass (42 tests); totals, week/month boundaries, suggestion ranking, import dedupe, CSV versioning, update parsing/version comparison, and the UI smoke flows are covered.
+- Unit, database, CSV, update, and UI tests pass (46 tests); totals, week/month boundaries, suggestion ranking, import dedupe, CSV versioning, update parsing/version comparison, entry-sheet state, and the UI smoke flows are covered.
 - `gradlew build` succeeds and Android Lint reports no errors.
 - Room schema JSON is checked in and the migration-test setup is in place.
 - UI code imports no Room entities; totals/date/formatting logic is unit-tested and independent of Android.
@@ -512,7 +513,7 @@ When adding a feature or field:
 | NFR-6 | Done | minSdk 26; compile/target SDK 36. |
 | NFR-7 | Done | No analytics/ads/servers; only manual GitHub update request; backup disclosed. |
 | NFR-8 | Partial | Selected date survives process death; editor draft survives configuration changes but not process death. |
-| NFR-9 | Done | 42 JVM tests across money, dates, ranking, CSV, Room, update logic, and Compose UI smoke flows. |
+| NFR-9 | Done | 46 JVM tests across money, dates, ranking, CSV, Room, update logic, entry-sheet state, and Compose UI smoke flows. |
 | NFR-10 | Done | Release APK ~8 MB; debug under 20 MB. |
 | NFR-11 | Partial | Migration policy and exported schemas in place; no schema migration exists yet. |
 
@@ -585,6 +586,6 @@ Build verification: `testDebugUnitTest` passes, `lintDebug` reports 0 errors, an
 ### 17.6 Remaining work
 
 1. Manual device QA: visual layout, TalkBack, 200% font, performance, install-over-update.
-2. Publish the first GitHub release (`v1.1.0` or later) with the signed APK so the update checker has a target.
+2. ~~Publish the first GitHub release with the signed APK~~ — done: `v1.1.0` is published and marked latest. Next release: bump `versionCode` and publish a newer `vX.Y.Z` tag.
 3. Optional: automatic update checks, in-app download/install, spend-intensity shading, recent-item chips.
 4. Add migration tests with the first Room schema change.
