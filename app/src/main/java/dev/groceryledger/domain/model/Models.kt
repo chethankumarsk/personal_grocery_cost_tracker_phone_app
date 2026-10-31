@@ -19,6 +19,12 @@ data class DailyTotal(
     val itemCount: Int,
 )
 
+data class CategoryTotal(
+    val name: String,
+    val totalPaise: Long,
+    val itemCount: Int,
+)
+
 data class ItemSuggestion(
     val name: String,
     val lastPricePaise: Long,

@@ -115,6 +115,25 @@ class OfflineExpenseRepositoryTest {
     }
 
     @Test
+    fun categoryTotalsAggregateTheSelectedRange() = runBlocking {
+        repository.add("Milk", 6_000, date, category = "Dairy")
+        repository.add("Cheese", 4_000, date.plusDays(1), category = "Dairy")
+        repository.add("Chips", 2_000, date, category = "Snacks")
+        repository.add("Soap", 1_000, date)
+        repository.add("Rice", 9_000, date.plusMonths(1), category = "Grains")
+
+        val totals = repository.observeCategoryTotals(
+            DateRange(date, date.plusDays(6)),
+        ).first()
+
+        assertEquals(listOf("Dairy", "Snacks", Categories.UNCATEGORIZED), totals.map { it.name })
+        assertEquals(10_000L, totals[0].totalPaise)
+        assertEquals(2, totals[0].itemCount)
+        assertEquals(2_000L, totals[1].totalPaise)
+        assertEquals(1_000L, totals[2].totalPaise)
+    }
+
+    @Test
     fun clearingAllRemovesEntriesAndSuggestions() = runBlocking {
         repository.add("Milk", 6_000, date)
         repository.clearAll()

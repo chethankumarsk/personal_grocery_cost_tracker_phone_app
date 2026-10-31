@@ -3,6 +3,7 @@ package dev.groceryledger.domain.repository
 import dev.groceryledger.domain.date.DateRange
 import dev.groceryledger.domain.model.AppSettings
 import dev.groceryledger.domain.model.Categories
+import dev.groceryledger.domain.model.CategoryTotal
 import dev.groceryledger.domain.model.DailyTotal
 import dev.groceryledger.domain.model.Expense
 import dev.groceryledger.domain.model.ItemSuggestion
@@ -14,6 +15,7 @@ import java.time.LocalDate
 interface ExpenseRepository {
     fun observeDailyTotals(range: DateRange): Flow<List<DailyTotal>>
     fun observeTotal(range: DateRange): Flow<Long>
+    fun observeCategoryTotals(range: DateRange): Flow<List<CategoryTotal>>
     fun observeEntries(date: LocalDate): Flow<List<Expense>>
     fun observeSuggestions(query: String): Flow<List<ItemSuggestion>>
 

@@ -4,9 +4,9 @@
   "project": {
     "name": "Grocery Ledger",
     "package": "dev.groceryledger",
-    "version": "1.3.1",
-    "version_code": 8,
-    "status": "v1 + categories + category management + update install implemented; physical-device QA pending",
+    "version": "1.3.2",
+    "version_code": 9,
+    "status": "v1 + categories + category management/totals + update install implemented; physical-device QA pending",
     "repository": "https://github.com/chethankumarsk/personal_grocery_cost_tracker_phone_app",
     "min_sdk": 26,
     "target_sdk": 36,
@@ -18,7 +18,7 @@
       "DataStore",
       "Coroutines"
     ],
-    "last_verified": "58 JVM + 5 instrumentation tests passed; lint 0 errors; signed 1.3.1 release APK built"
+    "last_verified": "60 JVM + 5 instrumentation tests passed; lint 0 errors; signed 1.3.2 release APK built"
   },
   "read_order": [
     "AGENTS.md",
@@ -477,9 +477,9 @@
     {
       "id": "future.categories",
       "type": "future",
-      "label": "Category filtering and analysis",
+      "label": "Category filtering",
       "status": "deferred",
-      "summary": "Filter the day/month view by category and show a monthly category breakdown. Management is done."
+      "summary": "Filter the day/week/month summary and day sheet to one category. Monthly totals are done."
     },
     {
       "id": "future.budget",
@@ -514,8 +514,8 @@
       "type": "feature",
       "label": "Entry categories",
       "status": "done",
-      "path": "ui/entry + ui/settings + data/local + data/csv",
-      "summary": "Optional category per entry, presets plus custom, Uncategorized default, shown in the day sheet. Settings can rename or delete categories; renames follow entries and deletes move them to Uncategorized. Schema v2 and CSV v2 (v1 still imports)."
+      "path": "ui/entry + ui/settings + ui/calendar + data/local + data/csv",
+      "summary": "Optional category per entry, presets plus custom, Uncategorized default, shown in the day sheet. Settings can rename or delete categories; renames follow entries and deletes move them to Uncategorized. The calendar shows monthly totals by category. Schema v2 and CSV v2 (v1 still imports)."
     },
     {
       "id": "feature.in-app-update",
@@ -532,6 +532,14 @@
       "status": "done",
       "path": "docs/adr/0003-in-app-updates.md",
       "summary": "User-started download only; cache-scoped FileProvider; 100 MB cap; GitHub digest plus package/version/signature checks; REQUEST_INSTALL_PACKAGES only for the installer handoff. Browser release page kept as fallback."
+    },
+    {
+      "id": "feature.category-totals",
+      "type": "feature",
+      "label": "Monthly category totals",
+      "status": "done",
+      "path": "ui/calendar + data/local",
+      "summary": "Collapsible By category card under the Day/Week/Month summary. Lists each category total and item count for the selected month, ordered by spend, including Uncategorized."
     }
   ],
   "edges": [
@@ -1022,6 +1030,31 @@
     },
     {
       "from": "feature.categories",
+      "to": "test.unit",
+      "type": "tested_by"
+    },
+    {
+      "from": "feature.category-totals",
+      "to": "data.local",
+      "type": "implemented_by"
+    },
+    {
+      "from": "feature.category-totals",
+      "to": "ui.calendar",
+      "type": "surfaces_in"
+    },
+    {
+      "from": "feature.category-totals",
+      "to": "feature.categories",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.category-totals",
+      "to": "req.data",
+      "type": "implements"
+    },
+    {
+      "from": "feature.category-totals",
       "to": "test.unit",
       "type": "tested_by"
     }

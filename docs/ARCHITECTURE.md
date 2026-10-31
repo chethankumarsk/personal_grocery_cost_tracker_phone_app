@@ -36,6 +36,7 @@ No Android or Room types cross into `domain`.
 - Room entities/DAOs/database (schema exported to `app/schemas`).
 - `OfflineExpenseRepository` implements totals, entries, autocomplete, CRUD, undo restore, import, clearing, and category CRUD.
 - Categories are stored by name on entries and listed in the `categories` table (schema v2). Renaming updates every entry using the category; deleting reassigns those entries to `Uncategorized`.
+- Category totals are a grouped SQL sum over the selected month, exposed as `observeCategoryTotals`; no totals are stored.
 - The `item_catalog` table is a derived cache for suggestions and last-price memory. It is maintained transactionally with entry writes and fully rebuilt after an import. It can always be rebuilt from `expenses`.
 - `CsvBackup` is a pure writer/parser for the versioned CSV format. `CsvBackupManager` handles Android `ContentResolver` streams.
 - `DataStoreSettingsRepository` stores week start and theme with defaults for missing/unknown values.
@@ -46,7 +47,7 @@ No Android or Room types cross into `domain`.
 ### `ui`
 
 - `MainViewModel` owns selected date/month, day sheet visibility, editor state, suggestions, import preview, update state, and snackbar events.
-- `CalendarScreen` shows the month, summary card, grid, and day sheet; `EntrySheet` handles add/edit/delete and the date picker; `SettingsScreen` handles preferences, category rename/delete, backup, delete-all, the update check, and the download/install dialogs.
+- `CalendarScreen` shows the month, summary card, By category card, grid, and day sheet; `EntrySheet` handles add/edit/delete and the date picker; `SettingsScreen` handles preferences, category rename/delete, backup, delete-all, the update check, and the download/install dialogs.
 - `UiText` lets the ViewModel emit localized resource-backed snackbar messages without holding a `Context`.
 - The theme uses Material 3 dynamic colors on Android 12+ and a green fallback palette below that.
 
@@ -114,7 +115,7 @@ JVM tests use JUnit 4 + Robolectric:
 - APK download tests (size/checksum/cancellation cleanup) against a local HTTP server.
 - Compose/Robolectric smoke tests for activity launch, settings, opening the add sheet, and saving an entry.
 
-There are 58 JVM tests plus 5 instrumentation tests (Room migration and APK verifier). Physical-device performance and visual checks are still pending.
+There are 60 JVM tests plus 5 instrumentation tests (Room migration and APK verifier). Physical-device performance and visual checks are still pending.
 
 ## Update path
 

@@ -33,6 +33,22 @@ interface ExpenseDao {
 
     @Query(
         """
+        SELECT category,
+               SUM(amount_paise) AS totalPaise,
+               COUNT(*) AS itemCount
+        FROM expenses
+        WHERE expense_date BETWEEN :startEpochDay AND :endEpochDay
+        GROUP BY category
+        ORDER BY totalPaise DESC, category ASC
+        """,
+    )
+    fun observeCategoryTotals(
+        startEpochDay: Long,
+        endEpochDay: Long,
+    ): Flow<List<CategoryTotalRow>>
+
+    @Query(
+        """
         SELECT SUM(amount_paise) FROM expenses
         WHERE expense_date BETWEEN :startEpochDay AND :endEpochDay
         """,

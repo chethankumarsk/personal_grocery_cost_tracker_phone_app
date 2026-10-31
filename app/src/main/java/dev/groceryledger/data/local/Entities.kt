@@ -81,3 +81,12 @@ data class DailyTotalRow(
     @ColumnInfo(name = "itemCount")
     val itemCount: Int,
 )
+
+data class CategoryTotalRow(
+    @ColumnInfo(name = "category")
+    val category: String,
+    @ColumnInfo(name = "totalPaise")
+    val totalPaise: Long,
+    @ColumnInfo(name = "itemCount")
+    val itemCount: Int,
+)

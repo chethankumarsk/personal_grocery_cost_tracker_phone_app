@@ -31,6 +31,7 @@ import dev.groceryledger.domain.date.DateRange
 import dev.groceryledger.domain.date.DateRanges
 import dev.groceryledger.domain.model.AppSettings
 import dev.groceryledger.domain.model.Categories
+import dev.groceryledger.domain.model.CategoryTotal
 import dev.groceryledger.domain.model.Expense
 import dev.groceryledger.domain.model.ItemSuggestion
 import dev.groceryledger.domain.model.SpendingSummary
@@ -147,14 +148,20 @@ class MainViewModel(
             val gridRange = DateRanges.monthGridRange(key.month, key.weekStart)
             val weekRange = DateRanges.weekRange(key.selectedDate, key.weekStart)
             val monthRange = DateRanges.monthRange(key.month)
+            val dayRange = DateRange(key.selectedDate, key.selectedDate)
+            val monthTotals = combine(
+                repository.observeTotal(monthRange),
+                repository.observeCategoryTotals(monthRange),
+            ) { total, categories -> total to categories }
 
             combine(
                 repository.observeDailyTotals(gridRange),
                 repository.observeTotal(weekRange),
-                repository.observeTotal(monthRange),
-                repository.observeTotal(DateRange(key.selectedDate, key.selectedDate)),
+                monthTotals,
+                repository.observeTotal(dayRange),
                 repository.observeEntries(key.selectedDate),
-            ) { dailyTotals, weekTotal, monthTotal, dayTotal, entries ->
+            ) { dailyTotals, weekTotal, monthBreakdown, dayTotal, entries ->
+                val (monthTotal, categoryTotals) = monthBreakdown
                 val totalsByDate = dailyTotals.associateBy { it.date }
                 val days = DateRanges.monthGridDates(key.month, key.weekStart).map { date ->
                     val total = totalsByDate[date]
@@ -184,6 +191,7 @@ class MainViewModel(
                         totalPaise = dayTotal,
                         itemCount = entries.size,
                     ),
+                    categoryTotals = categoryTotals,
                 )
             }
         }
@@ -783,6 +791,7 @@ class MainViewModel(
             },
             summary = SpendingSummary(0, 0, 0),
             selectedDay = DayDetail(today, emptyList(), 0, 0),
+            categoryTotals = emptyList(),
         )
     }
 

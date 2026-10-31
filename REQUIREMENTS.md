@@ -1,22 +1,22 @@
 # Grocery Cost Tracker — Requirements
 
-- **Version:** 0.7 (category management)
-- **Date:** 30 October 2026
-- **Status:** v1 + categories + category management + manual check/in-app update implemented; physical-device QA pending
+- **Version:** 0.8 (category totals)
+- **Date:** 31 October 2026
+- **Status:** v1 + categories + category management + monthly category totals + manual check/in-app update implemented; physical-device QA pending
 - **App name:** Grocery Ledger
 - **Platform:** Android, single user, offline-first, INR
 
 ## 0. Implementation status (30 October 2026)
 
-- v1, categories, category management, and both update paths are implemented in Kotlin + Jetpack Compose with Room and DataStore.
-- JVM test suite: 58 tests covering domain logic, CSV, Room repository behavior, category management, update parsing/versioning, APK download verification, entry-sheet state, activity launch, settings, and add-entry/calendar UI flows.
+- v1, categories, category management, monthly category totals, and both update paths are implemented in Kotlin + Jetpack Compose with Room and DataStore.
+- JVM test suite: 60 tests covering domain logic, CSV, Room repository behavior, category management/totals, update parsing/versioning, APK download verification, entry-sheet state, activity launch, settings, and add-entry/calendar UI flows.
 - Instrumentation tests (5): v1→v2 migration preserves entries, defaults them to Uncategorized, and seeds presets; the APK verifier accepts a correctly signed newer build and rejects same-version, wrong-package, and non-APK files.
 - Debug and signed release APKs build; `lintDebug` reports no errors.
-- Release package: `dev.groceryledger`; version 1.3.1 / versionCode 8; minSdk 26, compile/target SDK 36.
+- Release package: `dev.groceryledger`; version 1.3.2 / versionCode 9; minSdk 26, compile/target SDK 36.
 - Release keystore created outside the repository; the first real install should use the signed release APK.
 - Network is used only for the user-initiated GitHub Releases check and the update APK download the user explicitly starts.
 - LLM/developer context: `AGENTS.md`, `docs/KNOWLEDGE_GRAPH.md`, and the machine-readable `docs/knowledge-graph.json`.
-- GitHub release **v1.1.1** is the latest published release; the update checker resolves it. In-app installation needs a release newer than the installed app (e.g. `v1.3.1`).
+- GitHub release **v1.3.1** is the latest published release; the update checker resolves it. Publishing `v1.3.2` exercises the in-app update path from 1.3.1.
 - Remaining: manual visual/performance QA on a physical Android phone and an end-to-end in-app update test against a published newer release.
 
 ---
@@ -58,7 +58,7 @@ The app is deliberately small: no accounts, no cloud, no ads, no analytics. Spen
 - Budgets, alerts, or spending limits.
 - Receipt photos, OCR, barcode scanning.
 - Shopping lists or recurring entries.
-- Charts, cross-store price comparison, and category filtering/breakdown.
+- Charts, cross-store price comparison, and category filtering.
 - Multi-currency; currency is fixed to INR.
 - iOS or web versions.
 - Ads, telemetry, or crash reporting that sends data off-device.
@@ -202,7 +202,8 @@ With Sunday week start, the week containing 29 Oct is 25–31 Oct and totals ₹
 - **CAT-5 (Must):** CSV `format_version` 2 adds a `category` column. v1 files still import and their rows become Uncategorized. Older app versions reject v2 files.
 - **CAT-6 (Must):** Schema v2 is additive: an `ALTER TABLE` with a default plus a new `categories` table, seeded by the migration. No entries are lost.
 - **CAT-7 (Must):** Settings lists every category except the virtual `Uncategorized` one. A category can be renamed; the new name follows the same validation as adding and all entries using it are updated. A category can be deleted after confirmation; its entries move to `Uncategorized`. `Uncategorized` cannot be renamed or deleted.
-- **CAT-8 (Should, deferred):** Category filtering or a monthly category breakdown.
+- **CAT-8 (Must):** A collapsible **By category** card under the Day/Week/Month summary lists every category with its total and item count for the selected month. `Uncategorized` is included and labelled consistently; categories are ordered by spend, highest first.
+- **CAT-9 (Should, deferred):** Filtering the day/week/month summary and day sheet to a single category.
 
 ## 6. Data model
 
@@ -347,12 +348,14 @@ Calendar (home)
 | S20 | Import a file while entries already exist | New entries merge in; existing entries are untouched |
 | S21 | Import a file with a newer `format_version` | Rejected with an "update the app" message; no data changes |
 | S22 | Tap Check for updates when the latest release is `v1.0.0` and the app is 1.0.0 | "You're up to date" dialog; no install action |
-| S23 | Tap Check for updates when `v1.3.1` is published and the app is 1.3.0 | Update dialog shows 1.3.1 and notes; Download and install verifies and opens Android's installer, and Open release page opens the browser |
+| S23 | Tap Check for updates when `v1.3.2` is published and the app is 1.3.1 | Update dialog shows 1.3.2 and notes; Download and install verifies and opens Android's installer, and Open release page opens the browser |
 | S24 | Tap Check for updates when the repository has no releases | Friendly "No releases yet" dialog |
 | S25 | Tap Check for updates while offline or rate-limited | Friendly failure message with retry/close; no crash |
 | S26 | Open Settings without tapping Check for updates | No network request is made |
 | S27 | Download an update whose checksum or signing key does not match | File is discarded; friendly error; nothing is installed |
 | S28 | Tap Download and install without install permission | App explains, opens the permission setting, and installs after returning |
+| S29 | Open the By category card for a month with Dairy ₹100 and Snacks ₹20 | Shows Dairy ₹100 (2 items) then Snacks ₹20 (1 item), highest spend first |
+| S30 | A month with only Uncategorized entries | By category shows Uncategorized with the month total and item count |
 
 ## 12. Assumptions
 
@@ -398,8 +401,8 @@ Calendar (home)
 | Item | Status |
 | --- | --- |
 | Physical-device visual and performance QA | Pending |
-| Publish the first GitHub release (`v1.1.0` or later) | Done — `v1.1.1` published with signed APK |
-| End-to-end in-app update against a published newer release | Pending: install 1.3.1 manually, then publish 1.3.2 or later; downloader/verifier covered by tests |
+| Publish the first GitHub release (`v1.1.0` or later) | Done - `v1.3.1` is the latest published release with signed APK |
+| End-to-end in-app update against a published newer release | Pending: publish 1.3.2 from 1.3.1; downloader/verifier covered by tests |
 | Optional Play Store publication | Not planned for v1 |
 
 ## 14. Recommended future enhancements
@@ -482,7 +485,7 @@ When adding a feature or field:
 ## 16. Definition of done (v1)
 
 - All **Must** requirements implemented and verified where device testing is not required.
-- Unit, database, CSV, update, download-verification, and UI tests pass (58 tests); totals, week/month boundaries, suggestion ranking, import dedupe, CSV versioning, category rename/delete, update parsing/version comparison, APK checksum/size handling, entry-sheet state, and the UI smoke flows are covered.
+- Unit, database, CSV, update, download-verification, and UI tests pass (60 tests); totals, week/month boundaries, suggestion ranking, import dedupe, CSV versioning, category rename/delete, monthly category totals, update parsing/version comparison, APK checksum/size handling, entry-sheet state, and the UI smoke flows are covered.
 - `gradlew build` succeeds and Android Lint reports no errors.
 - Room schema JSON is checked in and the v1→v2 migration instrumentation test passes.
 - UI code imports no Room entities; totals/date/formatting logic is unit-tested and independent of Android.
@@ -520,8 +523,8 @@ When adding a feature or field:
 | DAT-1..DAT-10 | Done | Local persistence, auto backup, transactional catalog, versioned CSV, UID merge, preview/errors, restore, no expiry. |
 | UPD-1..UPD-5, UPD-7..UPD-9 | Done | Manual GitHub Releases check, semver comparison, notes + Download and install + browser fallback, checksum/package/version/signature verification, friendly failures, release policy, scoped permissions. |
 | UPD-6 | Deferred | Optional automatic daily check; checks remain manual-only. |
-| CAT-1..CAT-7 | Done | Category column + `categories` table (schema v2), presets, editor chips with "+ New category", day-sheet label, CSV v2 with v1 import, Settings rename/delete with entry reassignment. |
-| CAT-8 | Deferred | Category filtering and monthly breakdown. |
+| CAT-1..CAT-8 | Done | Category column + `categories` table (schema v2), presets, editor chips with "+ New category", day-sheet label, CSV v2 with v1 import, Settings rename/delete with entry reassignment, monthly category totals card. |
+| CAT-9 | Deferred | Category filtering of the summary and day sheet. |
 
 ### 17.2 Non-functional requirements
 
@@ -535,7 +538,7 @@ When adding a feature or field:
 | NFR-6 | Done | minSdk 26; compile/target SDK 36. |
 | NFR-7 | Done | No analytics/ads/servers; manual GitHub check plus user-started APK download; backup disclosed. |
 | NFR-8 | Partial | Selected date survives process death; editor draft survives configuration changes but not process death. |
-| NFR-9 | Done | 58 JVM tests across money, dates, ranking, CSV, Room, category management, update/download logic, entry-sheet state, and Compose UI smoke flows. |
+| NFR-9 | Done | 60 JVM tests across money, dates, ranking, CSV, Room, category management/totals, update/download logic, entry-sheet state, and Compose UI smoke flows. |
 | NFR-10 | Done | Release APK ~8 MB; debug under 20 MB. |
 | NFR-11 | Done | Migration policy and exported schemas in place; v2 migration and its instrumentation test pass. |
 
@@ -553,7 +556,7 @@ When adding a feature or field:
 | MNT-18 | Done | One-command tests/lint/build; 0 lint errors. |
 | MNT-19 | Done | No feature flags or remote config; additive seams. |
 | MNT-20 | Done | README, architecture, ADRs, release guide, AGENTS.md, knowledge graph. |
-| MNT-21 | Done | Broad JVM tests pass (58) plus migration and APK verifier instrumentation tests (5). |
+| MNT-21 | Done | Broad JVM tests pass (60) plus migration and APK verifier instrumentation tests (5). |
 | MNT-22 | Partial | Patterns followed; physical-device accessibility QA pending. |
 
 ### 17.4 Acceptance scenarios
@@ -588,6 +591,8 @@ When adding a feature or field:
 | S26 | Partial | Code only contacts network on tap; manual verification pending. |
 | S27 | Partial | Checksum/size unit tests pass; package/version/non-APK checks pass on device; a wrong-signer APK is rejected by the implemented comparison but needs a second signed fixture for a direct test. |
 | S28 | Partial | Permission flow implemented; manual device check pending. |
+| S29 | Done | Repository aggregation test plus the expandable-card Compose test. |
+| S30 | Done | Uncategorized is included by the same aggregation and labelled in the card. |
 
 ### 17.5 Automated test inventory
 
@@ -597,15 +602,15 @@ When adding a feature or field:
 | DateRangesTest | 8 |
 | SuggestionRankerTest | 5 |
 | CsvBackupTest | 10 |
-| OfflineExpenseRepositoryTest | 8 |
+| OfflineExpenseRepositoryTest | 9 |
 | VersionComparatorTest | 3 |
 | GitHubReleaseParserTest | 5 |
 | ApkDownloaderTest | 5 |
 | EntrySheetStateTest | 4 |
 | MainActivityTest | 1 |
-| CalendarUiTest | 2 |
+| CalendarUiTest | 3 |
 | AddEntryUiTest | 1 |
-| **Total** | **58** |
+| **Total** | **60** |
 
 Instrumented: `GroceryDatabaseMigrationTest` (1) covers v1→v2 entry preservation and preset seeding; `ApkVerifierTest` (4) covers package, version, signature acceptance, and non-APK rejection against the installed APK.
 
@@ -614,5 +619,5 @@ Build verification: `testDebugUnitTest` passes, `lintDebug` reports 0 errors, an
 ### 17.6 Remaining work
 
 1. Manual device QA: visual layout, TalkBack, 200% font, performance, install-over-update, and the in-app permission/installer dialogs.
-2. ~~Publish the first GitHub release with the signed APK~~ - done: `v1.1.1` is published and marked latest. Next: publish `v1.3.1`, install it manually once, then publish a newer `v1.3.2` to exercise in-app install.
+2. ~~Publish the first GitHub release with the signed APK~~ - done: `v1.3.1` is the latest published release. Next: publish `v1.3.2`, then update from 1.3.1 with **Download and install**.
 3. Optional: automatic update checks, spend-intensity shading, recent-item chips.

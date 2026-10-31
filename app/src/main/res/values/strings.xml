@@ -65,6 +65,10 @@
     <string name="summary_day">Day</string>
     <string name="summary_week">Week</string>
     <string name="summary_month">Month</string>
+    <string name="category_breakdown_title">By category</string>
+    <string name="category_breakdown_empty">No spending this month.</string>
+    <string name="category_breakdown_show">Show category totals</string>
+    <string name="category_breakdown_hide">Hide category totals</string>
 
     <string name="calendar_day_description">%1$s, total %2$s, %3$s</string>
     <string name="calendar_day_empty_description">%1$s, no spending</string>

@@ -3,7 +3,7 @@
 A small, offline-first Android app for tracking grocery spending in INR. The home screen is a calendar; each day holds item entries, and the selected day shows day, week, and month totals. Item names autocomplete from previous purchases, including the last price paid.
 
 - **Package:** `dev.groceryledger`
-- **Version:** 1.3.1 (versionCode 8)
+- **Version:** 1.3.2 (versionCode 9)
 - **Platform:** Android 8.0+ (minSdk 26), compile/target SDK 36
 - **UI:** Kotlin + Jetpack Compose + Material 3
 - **Storage:** Room + DataStore, entirely on-device
@@ -13,7 +13,7 @@ A small, offline-first Android app for tracking grocery spending in INR. The hom
 
 ## Status
 
-The v1 feature set, categories with Settings management, and both update paths are implemented. 58 JVM tests and 5 instrumentation tests pass, lint reports 0 errors, and a signed 1.3.1 release APK builds. Manual QA on a physical phone is still recommended before daily use.
+The v1 feature set, categories with Settings management, monthly category totals, and both update paths are implemented. 60 JVM tests and 5 instrumentation tests pass, lint reports 0 errors, and a signed 1.3.2 release APK builds. Manual QA on a physical phone is still recommended before daily use.
 
 ## Features
 
@@ -28,6 +28,7 @@ The v1 feature set, categories with Settings management, and both update paths a
 - CSV export and duplicate-safe import, including versioned backups.
 - Categories per entry: presets plus your own, optional with `Uncategorized` as the default, shown in the day sheet.
 - Category management in Settings: rename a category (entries follow) or delete it (entries move to Uncategorized), with confirmation.
+- Collapsible **By category** monthly totals under the Day/Week/Month summary, including Uncategorized.
 - Manual "Check for updates" against GitHub Releases, with version comparison.
 - In-app **Download and install** (checksum + signing-key verified, Android's installer confirms) or **Open release page** as the browser fallback.
 - No accounts, ads, or analytics. Network is used only when you check for updates or download one.
@@ -86,7 +87,7 @@ Outputs:
 
 - Debug: `app/build/outputs/apk/debug/app-debug.apk` (package suffix `.debug`, so it can coexist with release builds).
 - Release: `app/build/outputs/apk/release/app-release.apk` (package `dev.groceryledger`).
-- A convenient signed copy is also at `dist/GroceryLedger-1.3.1-release.apk`, with its checksum in `dist/README.txt` and `dist/GroceryLedger-1.3.1-release.apk.sha256`.
+- A convenient signed copy is also at `dist/GroceryLedger-1.3.2-release.apk`, with its checksum in `dist/README.txt` and `dist/GroceryLedger-1.3.2-release.apk.sha256`.
 
 Install on a connected phone with USB debugging:
 
@@ -113,19 +114,19 @@ Download only from this repository’s **Releases** page, never from a mirror, f
 PowerShell:
 
 ```powershell
-Get-FileHash .\GroceryLedger-1.3.1-release.apk -Algorithm SHA256
+Get-FileHash .\GroceryLedger-1.3.2-release.apk -Algorithm SHA256
 ```
 
 Linux/macOS:
 
 ```bash
-sha256sum -c GroceryLedger-1.3.1-release.apk.sha256
+sha256sum -c GroceryLedger-1.3.2-release.apk.sha256
 ```
 
 Verify the signing certificate (the path to `apksigner` depends on your Android SDK):
 
 ```powershell
-apksigner verify --print-certs .\GroceryLedger-1.3.1-release.apk
+apksigner verify --print-certs .\GroceryLedger-1.3.2-release.apk
 ```
 
 The signing certificate SHA-256 is stable across releases:
@@ -134,13 +135,13 @@ The signing certificate SHA-256 is stable across releases:
 2d05264a172287b9f2eb022fe30c7cc30ab3c813ace9e8dfc524d49a0ffbf90f
 ```
 
-For **1.3.1**, the APK SHA-256 is:
+For **1.3.2**, the APK SHA-256 is:
 
 ```text
-1DDA3F5125D157CB5BCE222135047D8CCA0B130798AA30D519F31C9930071F97
+7856AB5815401C9DBD64DDC80C13368F025F3DD4A3F3065E970729C2357BBF19
 ```
 
-The package must be `dev.groceryledger` with versionCode `8` and versionName `1.3.1`. If the hash or certificate does not match, stop and re-download from the Releases page.
+The package must be `dev.groceryledger` with versionCode `9` and versionName `1.3.2`. If the hash or certificate does not match, stop and re-download from the Releases page.
 
 ### If Play Protect warns or blocks the install
 
@@ -174,13 +175,13 @@ Debug APKs use `dev.groceryledger.debug` and a debug key; they are for developme
 The app can check for updates from **Settings → Check for updates**.
 
 - Source: the public repository's GitHub Releases (`releases/latest`), not raw Git tags.
-- A release tag must look like `v1.3.1`; the app compares it numerically with its installed version.
+- A release tag must look like `v1.3.2`; the app compares it numerically with its installed version.
 - The dialog shows the latest version and release notes, with two choices:
   - **Download and install** downloads the APK asset into the app cache, verifies its size and GitHub's SHA-256 digest (when present), then verifies the package name, a higher `versionCode`, and that it is signed with the same key as the installed app. Android's package installer then shows its own confirmation. The first time, Android asks you to allow installs from Grocery Ledger.
   - **Open release page** is the previous browser flow: open the GitHub release and install the signed APK yourself. It remains available when a release has no APK asset or the in-app path fails.
 - The app never installs silently and never updates itself in the background.
 - Checks are manual only. No background polling and no analytics.
-- The latest published release is `v1.1.1`. Install 1.3.1 manually once (1.2.0 predates the button); after that, publishing a newer tag such as `v1.3.2` makes **Download and install** testable end to end.
+- The latest published release is `v1.3.1`. From 1.3.1, publishing `v1.3.2` makes **Download and install** testable end to end; older builds must be updated manually once.
 - Publish the APK as a GitHub release asset; GitHub supplies the SHA-256 digest used for verification. See [docs/RELEASING.md](docs/RELEASING.md).
 
 The app requests `INTERNET` for the update check/download and `REQUEST_INSTALL_PACKAGES` solely so the in-app path can hand a verified APK to Android's installer.
@@ -217,7 +218,7 @@ Instrumented tests (Room migration + APK verifier) need a connected device or em
 .\gradlew.bat :app:connectedDebugAndroidTest
 ```
 
-Coverage includes (58 tests):
+Coverage includes (60 tests):
 
 - INR parsing, Indian digit grouping, compact cell formatting.
 - Week/month boundaries, including month/year-crossing weeks.
@@ -225,6 +226,7 @@ Coverage includes (58 tests):
 - CSV round-trip, duplicate/version/invalid-row handling.
 - Room repository totals, catalog maintenance, delete/restore, import rebuild.
 - Category rename/delete, entry reassignment, and duplicate/reserved name rejection.
+- Monthly category totals aggregation and the expandable calendar card.
 - Update-version comparison, GitHub release JSON parsing (including digest/size), and APK download checksum/size handling.
 - Robolectric activity launch, settings screen, add-sheet, and add-entry flow.
 - Room v1→v2 migration (instrumentation): existing entries survive and become Uncategorized; presets are seeded.
@@ -241,5 +243,7 @@ There is no emulator/device attached in this environment, so performance and vis
 5. Run tests, lint, and the release build.
 6. Increase `versionCode`, keep the same signing key and package, then install over the previous release and verify existing data.
 7. Publish the APK as a GitHub release tagged `vX.Y.Z`; see [docs/RELEASING.md](docs/RELEASING.md).
+
+**Local-only release helper (gitignored).** After committing and pushing in GitHub Desktop, `tools\publish-release.cmd -Build` verifies the build, writes the APK checksum and release notes, and opens the GitHub release page. Use `-NoOpen` for a dry run. The helper never commits or pushes on its own.
 
 For LLM handoff, start with [AGENTS.md](AGENTS.md) and [docs/KNOWLEDGE_GRAPH.md](docs/KNOWLEDGE_GRAPH.md).

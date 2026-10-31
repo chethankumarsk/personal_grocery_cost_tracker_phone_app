@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.2 — 31 October 2026
+
+- **Monthly category totals.** A new collapsible **By category** card under the Day/Week/Month summary shows every category's total and item count for the selected month.
+- `Uncategorized` is included and labelled consistently, so the category totals add up to the month total.
+- Categories are ordered by spend, highest first.
+- Adds repository and Compose tests for the breakdown (60 JVM tests total).
+
 ## 1.3.1 — 30 October 2026
 
 - **Manage categories in Settings.** Every category can now be renamed or deleted from a new Categories section.

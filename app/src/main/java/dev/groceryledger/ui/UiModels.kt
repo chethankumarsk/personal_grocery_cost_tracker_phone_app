@@ -6,6 +6,7 @@ import dev.groceryledger.data.update.UpdateFailureReason
 import dev.groceryledger.data.update.UpdateInstallFailure
 import dev.groceryledger.domain.date.DateRange
 import dev.groceryledger.domain.model.Categories
+import dev.groceryledger.domain.model.CategoryTotal
 import dev.groceryledger.domain.model.Expense
 import dev.groceryledger.domain.model.SpendingSummary
 import dev.groceryledger.domain.model.WeekStart
@@ -39,6 +40,7 @@ data class CalendarUiState(
     val days: List<CalendarDayUi>,
     val summary: SpendingSummary,
     val selectedDay: DayDetail,
+    val categoryTotals: List<CategoryTotal> = emptyList(),
 )
 
 enum class EditorMode {

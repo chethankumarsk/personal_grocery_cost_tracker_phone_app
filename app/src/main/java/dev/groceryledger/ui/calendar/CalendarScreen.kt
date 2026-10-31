@@ -23,6 +23,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -39,6 +41,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -58,6 +64,8 @@ import androidx.compose.ui.unit.sp
 import dev.groceryledger.R
 import dev.groceryledger.domain.date.DateRanges
 import dev.groceryledger.domain.money.Money
+import dev.groceryledger.domain.model.Categories
+import dev.groceryledger.domain.model.CategoryTotal
 import dev.groceryledger.domain.model.SpendingSummary
 import dev.groceryledger.ui.CalendarDayUi
 import dev.groceryledger.ui.CalendarUiState
@@ -125,6 +133,14 @@ fun CalendarScreen(
                 summary = state.summary,
                 dayDetail = state.selectedDay,
                 weekRange = DateRanges.formatWeekRange(state.weekRange),
+                monthLabel = DateRanges.formatMonthTitle(state.visibleMonth),
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            CategoryBreakdown(
+                totals = state.categoryTotals,
                 monthLabel = DateRanges.formatMonthTitle(state.visibleMonth),
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -266,6 +282,108 @@ private fun SummaryCard(
                     caption = monthLabel,
                     modifier = Modifier.weight(1f),
                 )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryBreakdown(
+    totals: List<CategoryTotal>,
+    monthLabel: String,
+    modifier: Modifier = Modifier,
+) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val toggleLabel = stringResource(
+        if (expanded) R.string.category_breakdown_hide else R.string.category_breakdown_show,
+    )
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    ) {
+        Column {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        role = Role.Button,
+                        onClickLabel = toggleLabel,
+                    ) { expanded = !expanded }
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.category_breakdown_title),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = monthLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) {
+                        Icons.Default.KeyboardArrowUp
+                    } else {
+                        Icons.Default.KeyboardArrowDown
+                    },
+                    contentDescription = toggleLabel,
+                )
+            }
+
+            if (expanded) {
+                HorizontalDivider(
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f),
+                )
+                if (totals.isEmpty()) {
+                    Text(
+                        text = stringResource(R.string.category_breakdown_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                } else {
+                    totals.forEach { total ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = if (total.name == Categories.UNCATEGORIZED) {
+                                        stringResource(R.string.category_uncategorized)
+                                    } else {
+                                        total.name
+                                    },
+                                    style = MaterialTheme.typography.bodyLarge,
+                                )
+                                Text(
+                                    text = pluralStringResource(
+                                        R.plurals.items_count,
+                                        total.itemCount,
+                                        total.itemCount,
+                                    ),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                )
+                            }
+                            Text(
+                                text = Money.format(total.totalPaise),
+                                style = MaterialTheme.typography.titleSmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
             }
         }
     }

@@ -19,9 +19,16 @@ class CalendarUiTest {
     @Test
     fun showsCalendarAndOpensTheAddSheet() {
         composeRule.onNodeWithText("Grocery Ledger").assertExists()
+        composeRule.onNodeWithText("By category").assertExists()
         composeRule.onNodeWithContentDescription("Add item").assertExists().performClick()
         composeRule.onNodeWithText("Add entry", useUnmergedTree = true).assertExists()
         composeRule.onNodeWithText("Item name", useUnmergedTree = true).assertExists()
+    }
+
+    @Test
+    fun categoryBreakdownExpands() {
+        composeRule.onNodeWithText("By category").performClick()
+        composeRule.onNodeWithContentDescription("Hide category totals").assertExists()
     }
 
     @Test

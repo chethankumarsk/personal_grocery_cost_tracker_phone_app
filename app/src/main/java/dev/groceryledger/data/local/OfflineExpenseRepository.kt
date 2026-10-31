@@ -10,6 +10,7 @@ import dev.groceryledger.data.local.ItemCatalogDao
 import dev.groceryledger.data.local.ItemCatalogEntity
 import dev.groceryledger.domain.date.DateRange
 import dev.groceryledger.domain.model.Categories
+import dev.groceryledger.domain.model.CategoryTotal
 import dev.groceryledger.domain.model.DailyTotal
 import dev.groceryledger.domain.model.Expense
 import dev.groceryledger.domain.model.ItemSuggestion
@@ -45,6 +46,20 @@ class OfflineExpenseRepository(
     override fun observeTotal(range: DateRange): Flow<Long> =
         expenseDao.observeTotal(range.start.toEpochDay(), range.endInclusive.toEpochDay())
             .map { it ?: 0L }
+
+    override fun observeCategoryTotals(range: DateRange): Flow<List<CategoryTotal>> =
+        expenseDao.observeCategoryTotals(
+            range.start.toEpochDay(),
+            range.endInclusive.toEpochDay(),
+        ).map { rows ->
+            rows.map {
+                CategoryTotal(
+                    name = it.category,
+                    totalPaise = it.totalPaise,
+                    itemCount = it.itemCount,
+                )
+            }
+        }
 
     override fun observeEntries(date: LocalDate): Flow<List<Expense>> =
         expenseDao.observeEntriesForDate(date.toEpochDay())
