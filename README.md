@@ -135,11 +135,7 @@ The signing certificate SHA-256 is stable across releases:
 2d05264a172287b9f2eb022fe30c7cc30ab3c813ace9e8dfc524d49a0ffbf90f
 ```
 
-For **1.3.2**, the APK SHA-256 is:
-
-```text
-7856AB5815401C9DBD64DDC80C13368F025F3DD4A3F3065E970729C2357BBF19
-```
+Use the `.sha256` file attached to the release you downloaded; it is the authoritative checksum for that APK. Rebuilding the same version can change the APK hash, so do not compare against a hash copied from the README or release notes of another build.
 
 The package must be `dev.groceryledger` with versionCode `9` and versionName `1.3.2`. If the hash or certificate does not match, stop and re-download from the Releases page.
 
@@ -244,6 +240,6 @@ There is no emulator/device attached in this environment, so performance and vis
 6. Increase `versionCode`, keep the same signing key and package, then install over the previous release and verify existing data.
 7. Publish the APK as a GitHub release tagged `vX.Y.Z`; see [docs/RELEASING.md](docs/RELEASING.md).
 
-**Local-only release helper (gitignored).** After committing and pushing in GitHub Desktop, `tools\publish-release.cmd -Build` verifies the build, writes the APK checksum and release notes, and opens the GitHub release page. Use `-NoOpen` for a dry run. The helper never commits or pushes on its own.
+**Local-only release helper (gitignored).** After committing and pushing in GitHub Desktop, `tools\publish-release.cmd -Build` verifies the build, writes the APK checksum and release notes, and opens the GitHub release page in Firefox. Use `-NoOpen` for a dry run. The helper never commits or pushes on its own. If it fails, `tools\record-tool.cmd` records the desktop while running it; recordings go to `dist\recordings\`. Use `-Seconds 30 -KeepRecording` for a fixed-length recording.
 
 For LLM handoff, start with [AGENTS.md](AGENTS.md) and [docs/KNOWLEDGE_GRAPH.md](docs/KNOWLEDGE_GRAPH.md).

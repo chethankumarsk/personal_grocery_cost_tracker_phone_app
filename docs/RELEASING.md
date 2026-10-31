@@ -69,11 +69,19 @@ The wrapper bypasses the PowerShell execution policy for this one script. It:
 - writes the `.sha256` file and `dist\release-notes-<version>.md`;
 - verifies the package, version, size and signing certificate;
 - checks the working tree, unpushed commits, existing tags and the latest GitHub release;
-- copies the notes to the clipboard and opens the GitHub “new release” page and the APK in Explorer.
+- copies the notes to the clipboard, opens the APK in Explorer first, waits a second, then opens the GitHub “new release” page in Firefox last so the browser ends up in front (falling back to the default browser if Firefox is not found).
 
-Then attach the APK and `.sha256`, keep **Set as the latest release** checked, and publish. Use `-NoOpen` for a dry run. Use `-Publish` only if GitHub CLI (`gh`) is installed and authenticated; otherwise use the web UI below.
+Then attach the APK and `.sha256`, paste the notes into **Release notes** (Ctrl+V), set **Release title** to `Grocery Ledger <version>`, keep **Set as the latest release** checked, and publish. Use `-NoOpen` for a dry run. Use `-Publish` only if GitHub CLI (`gh`) is installed and authenticated; otherwise use the web UI below.
 
 The helper does **not** commit or push. Do that in GitHub Desktop first, or the tag will point at older code.
+
+If the helper fails, record the desktop while it runs:
+
+```powershell
+.\tools\record-tool.cmd
+```
+
+The recording is saved under `dist\recordings\` (gitignored). `-Seconds` is a cap; by default the recorder stops 10 seconds after the command exits. Use `-KeepRecording` to fill the whole cap, e.g. `-Seconds 30 -KeepRecording`. Pass `-Command "..."` to record another command, or `-NoReveal` to skip opening Explorer afterwards. The recorder captures the full desktop, so close anything sensitive first.
 
 Use the GitHub web UI:
 

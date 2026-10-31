@@ -27,6 +27,8 @@ dist/
 # Local-only release helper (not part of the published repo)
 /tools/publish-release.ps1
 /tools/publish-release.cmd
+/tools/record-tool.ps1
+/tools/record-tool.cmd
 
 # OS
 Thumbs.db
