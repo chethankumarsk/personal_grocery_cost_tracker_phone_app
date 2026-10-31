@@ -9,6 +9,9 @@ This file is the starting context for any LLM or developer picking up this proje
 3. `docs/ARCHITECTURE.md` — layers, data flow, CSV format, update path
 4. `README.md` — build, install, signing, and release notes
 5. `docs/RELEASING.md` — how updates are published
+6. `AGENTS.local.md` — local-only tooling notes, if present in this checkout (gitignored, absent from the published repo)
+
+If `AGENTS.local.md` exists, read it before running any local build, release, or recording command. Tracked docs deliberately do not describe those helpers.
 
 For a code-free query of the machine-readable graph:
 
@@ -92,4 +95,4 @@ Use a release-signed APK for real data. Debug builds cannot be updated into rele
 4. If CSV changes, bump `format_version` and add a round-trip/old-version test.
 5. Update `docs/KNOWLEDGE_GRAPH.md` and `docs/knowledge-graph.json` when modules/features/status changes.
 6. Update `README.md`/`CHANGELOG.md` for user-visible changes.
-7. Build, test, lint, bump `versionCode`, keep the same key/package, and verify an in-place install. For local releases, commit/push in GitHub Desktop and run the gitignored `tools\publish-release.cmd -Build`; it verifies the APK, writes `dist\*.sha256` and release notes, and opens the GitHub release page.
+7. Build, test, lint, bump `versionCode`, keep the same key/package, and verify an in-place install. For local releases, commit and push in GitHub Desktop, then publish the signed APK and its `.sha256` as a GitHub release (see `docs/RELEASING.md`).
