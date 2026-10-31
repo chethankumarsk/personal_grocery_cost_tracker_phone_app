@@ -53,36 +53,6 @@ Do **not** change `applicationId` or the signing key. The APK must be installabl
 
 ## 3. Publish on GitHub
 
-### Local release helper (GitHub Desktop, not committed)
-
-The helper is gitignored and exists only in the maintainer's checkout; the web-UI steps below are the published workflow. In that checkout, after committing and pushing:
-
-```powershell
-.\tools\publish-release.cmd -Build
-```
-
-The wrapper bypasses the PowerShell execution policy for this one script. It:
-
-- reads `versionName`/`versionCode` and refuses a mismatched `-Version`;
-- optionally runs unit tests, lint and `assembleRelease` (`-Build`);
-- copies the APK to `dist\GroceryLedger-<version>-release.apk`;
-- writes the `.sha256` file and `dist\release-notes-<version>.md`;
-- verifies the package, version, size and signing certificate;
-- checks the working tree, unpushed commits, existing tags and the latest GitHub release;
-- copies the notes to the clipboard, opens the APK in Explorer first, waits a second, then opens the GitHub “new release” page in Firefox last so the browser ends up in front (falling back to the default browser if Firefox is not found).
-
-Then attach the APK and `.sha256`, paste the notes into **Release notes** (Ctrl+V), set **Release title** to `Grocery Ledger <version>`, keep **Set as the latest release** checked, and publish. Use `-NoOpen` for a dry run. Use `-Publish` only if GitHub CLI (`gh`) is installed and authenticated; otherwise use the web UI below.
-
-The helper does **not** commit or push. Do that in GitHub Desktop first, or the tag will point at older code.
-
-If the helper fails, record the desktop while it runs:
-
-```powershell
-.\tools\record-tool.cmd
-```
-
-The recording is saved under `dist\recordings\` (gitignored). `-Seconds` is a cap; by default the recorder stops 10 seconds after the command exits. Use `-KeepRecording` to fill the whole cap, e.g. `-Seconds 30 -KeepRecording`. Pass `-Command "..."` to record another command, or `-NoReveal` to skip opening Explorer afterwards. The recorder captures the full desktop, so close anything sensitive first.
-
 Use the GitHub web UI:
 
 1. Open <https://github.com/chethankumarsk/personal_grocery_cost_tracker_phone_app/releases/new>.
@@ -105,7 +75,7 @@ gh release create v1.3.2 .\dist\GroceryLedger-1.3.2-release.apk `
   --notes "Release notes here"
 ```
 
-Git is not currently installed in this environment; the web UI is the reliable path.
+The web UI is the reliable path if the GitHub CLI is not set up or authenticated.
 
 ## 4. Verify the app sees it
 

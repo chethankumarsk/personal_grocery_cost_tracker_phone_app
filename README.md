@@ -240,6 +240,4 @@ There is no emulator/device attached in this environment, so performance and vis
 6. Increase `versionCode`, keep the same signing key and package, then install over the previous release and verify existing data.
 7. Publish the APK as a GitHub release tagged `vX.Y.Z`; see [docs/RELEASING.md](docs/RELEASING.md).
 
-**Local-only release helper (gitignored).** After committing and pushing in GitHub Desktop, `tools\publish-release.cmd -Build` verifies the build, writes the APK checksum and release notes, and opens the GitHub release page in Firefox. Use `-NoOpen` for a dry run. The helper never commits or pushes on its own. If it fails, `tools\record-tool.cmd` records the desktop while running it; recordings go to `dist\recordings\`. Use `-Seconds 30 -KeepRecording` for a fixed-length recording.
-
 For LLM handoff, start with [AGENTS.md](AGENTS.md) and [docs/KNOWLEDGE_GRAPH.md](docs/KNOWLEDGE_GRAPH.md).
