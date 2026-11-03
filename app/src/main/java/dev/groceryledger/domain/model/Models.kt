@@ -33,6 +33,13 @@ data class ItemSuggestion(
     val lastUsedAt: Long,
 )
 
+/** A one-tap chip that restores the name, last price and last category of a recent item. */
+data class RecentItem(
+    val name: String,
+    val lastPricePaise: Long,
+    val category: String = Categories.UNCATEGORIZED,
+)
+
 data class SpendingSummary(
     val dayPaise: Long,
     val weekPaise: Long,

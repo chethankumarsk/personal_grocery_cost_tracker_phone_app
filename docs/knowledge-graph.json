@@ -65,7 +65,7 @@
       "label": "MainViewModel",
       "status": "done",
       "path": "app/src/main/java/dev/groceryledger/ui/MainViewModel.kt",
-      "summary": "Owns selected date/month, totals, day sheet, editor, autocomplete, import preview, update state, and snackbar events."
+      "summary": "Owns selected date/month, totals, day sheet, editor, autocomplete, recent-item chips, import preview, update state, and snackbar events."
     },
     {
       "id": "ui.root",
@@ -89,7 +89,15 @@
       "label": "DaySheet",
       "status": "done",
       "path": "app/src/main/java/dev/groceryledger/ui/calendar/DaySheet.kt",
-      "summary": "Selected-day item list, item count, exact total, empty state, and add/edit entry actions."
+      "summary": "Selected-day item list, item count, exact total, empty state, and add/edit/price-history entry actions."
+    },
+    {
+      "id": "ui.history-sheet",
+      "type": "file",
+      "label": "PriceHistorySheet",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/ui/history/PriceHistorySheet.kt",
+      "summary": "Full-screen per-item history: latest and previous price, change text, stats grid, trend chart and tap-to-edit list."
     },
     {
       "id": "ui.entry-sheet",
@@ -97,7 +105,7 @@
       "label": "EntrySheet",
       "status": "done",
       "path": "app/src/main/java/dev/groceryledger/ui/entry/EntrySheet.kt",
-      "summary": "Add/edit/delete form, autocomplete suggestions, last-price chip, date picker, discard confirmation, and save actions."
+      "summary": "Add/edit/delete form, autocomplete suggestions, last-price chip, recent-item chips, date picker, discard confirmation, and save actions."
     },
     {
       "id": "ui.settings",
@@ -138,6 +146,14 @@
       "status": "done",
       "path": "app/src/main/java/dev/groceryledger/domain/suggestion/SuggestionRanker.kt",
       "summary": "Pure prefix → word-start → contains ranking, then usage, recency, and alphabetical tie-breaks."
+    },
+    {
+      "id": "domain.history",
+      "type": "module",
+      "label": "Price history calculator",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/domain/history/PriceHistory.kt",
+      "summary": "Pure PricePoint/PriceStats/PriceHistory models, integer tenths-of-percent maths, and chart sampling."
     },
     {
       "id": "domain.models",
@@ -233,7 +249,7 @@
       "label": "Autocomplete",
       "status": "done",
       "path": "ui/entry + domain/suggestion",
-      "summary": "Two-character trigger, 120 ms debounce, six ranked suggestions, case/whitespace normalization, and free text."
+      "summary": "Two-character trigger, 120 ms debounce, six ranked suggestions, recent-item quick-add chips, case/whitespace normalization, and free text."
     },
     {
       "id": "feature.price-memory",
@@ -303,9 +319,17 @@
       "id": "req.autocomplete",
       "type": "requirement_group",
       "label": "SUG requirements",
-      "status": "partial",
+      "status": "done",
       "path": "REQUIREMENTS.md",
-      "summary": "SUG-1..9 implemented; SUG-10 optional recent-item chips deferred."
+      "summary": "SUG-1..10 implemented: suggestions, ranking, price memory, and recent-item chips."
+    },
+    {
+      "id": "req.price-history",
+      "type": "requirement_group",
+      "label": "PRICE requirements",
+      "status": "done",
+      "path": "REQUIREMENTS.md",
+      "summary": "PRICE-1..7 implemented: history list, change stats, chart, single-purchase state, tap-to-edit, 500-point cap."
     },
     {
       "id": "req.totals",
@@ -394,6 +418,14 @@
       "status": "done",
       "path": "app/src/test + app/src/androidTest",
       "summary": "58 JVM tests plus 5 instrumentation tests (Room v1-to-v2 migration and APK verifier): money, dates, ranking, Room repository, category management, CSV v1/v2, update parsing/versioning, APK download checksum/size handling, entry-sheet state, activity, calendar/settings/add-entry UI."
+    },
+    {
+      "id": "doc.price-history-design",
+      "type": "doc",
+      "label": "Price history design",
+      "status": "done",
+      "path": "docs/PRICE_HISTORY_DESIGN.md",
+      "summary": "Proposed UX, queries, pure stats, tests and rollout for per-item price history; not implemented yet."
     },
     {
       "id": "doc.requirements",
@@ -489,11 +521,20 @@
       "summary": "A target for the existing month total, with progress."
     },
     {
-      "id": "future.quick-add",
-      "type": "future",
-      "label": "Quick-add recent items",
-      "status": "deferred",
-      "summary": "Recent-item chips when the name field is empty."
+      "id": "feature.recent-chips",
+      "type": "feature",
+      "label": "Recent-item chips",
+      "status": "done",
+      "path": "ui/entry + data/local",
+      "summary": "Up to five chips under an empty name field; one tap fills name, last price and last category."
+    },
+    {
+      "id": "feature.price-history",
+      "type": "feature",
+      "label": "Price history",
+      "status": "done",
+      "path": "ui/history + domain/history + data/local",
+      "summary": "Every recorded purchase of one item with change versus the previous purchase, average/low/high, trend chart, tap-to-edit, and a 500-point cap."
     },
     {
       "id": "future.widget",
@@ -919,6 +960,11 @@
       "type": "documents"
     },
     {
+      "from": "doc.price-history-design",
+      "to": "app",
+      "type": "documents"
+    },
+    {
       "from": "doc.releasing",
       "to": "feature.update-check",
       "type": "operationalizes"
@@ -949,9 +995,59 @@
       "type": "future_for"
     },
     {
-      "from": "future.quick-add",
+      "from": "feature.recent-chips",
       "to": "feature.autocomplete",
-      "type": "future_for"
+      "type": "refines"
+    },
+    {
+      "from": "feature.recent-chips",
+      "to": "req.autocomplete",
+      "type": "implements"
+    },
+    {
+      "from": "feature.recent-chips",
+      "to": "ui.entry-sheet",
+      "type": "surfaces_in"
+    },
+    {
+      "from": "feature.recent-chips",
+      "to": "data.catalog",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.price-history",
+      "to": "req.price-history",
+      "type": "implements"
+    },
+    {
+      "from": "feature.price-history",
+      "to": "domain.history",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.price-history",
+      "to": "data.local",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.price-history",
+      "to": "ui.day-sheet",
+      "type": "surfaces_in"
+    },
+    {
+      "from": "ui.day-sheet",
+      "to": "ui.history-sheet",
+      "type": "opens"
+    },
+    {
+      "from": "ui.entry-sheet",
+      "to": "ui.history-sheet",
+      "type": "opens"
+    },
+    {
+      "from": "test.unit",
+      "to": "domain.history",
+      "type": "tests"
     },
     {
       "from": "future.widget",

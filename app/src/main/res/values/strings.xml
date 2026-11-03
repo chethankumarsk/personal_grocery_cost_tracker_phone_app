@@ -53,6 +53,27 @@
     <string name="last_paid_on">Last paid %1$s on %2$s</string>
     <string name="use_last_price">Use %1$s</string>
     <string name="previous_items">Previous items</string>
+    <string name="recent_items">Recent items</string>
+    <string name="price_history">Price history</string>
+    <string name="price_history_for">Price history for %1$s</string>
+    <string name="price_history_empty">No purchases recorded for this item.</string>
+    <string name="price_history_single">Only one purchase so far. Add the item again to see a trend.</string>
+    <string name="price_history_loading">Loading price history…</string>
+    <string name="price_history_truncated">Showing the latest 500 purchases.</string>
+    <string name="last_paid_amount">Last paid %1$s</string>
+    <string name="price_change_up">Up %1$s (%2$s) vs %3$s on %4$s</string>
+    <string name="price_change_down">Down %1$s (%2$s) vs %3$s on %4$s</string>
+    <string name="price_change_same">No change vs %1$s on %2$s</string>
+    <string name="price_history_average">Average</string>
+    <string name="price_history_low">Low</string>
+    <string name="price_history_high">High</string>
+    <string name="price_history_purchases">Purchases</string>
+    <string name="price_history_edit_description">Edit %1$s on %2$s, %3$s</string>
+
+    <plurals name="purchases_count">
+        <item quantity="one">%d purchase</item>
+        <item quantity="other">%d purchases</item>
+    </plurals>
     <plurals name="items_count">
         <item quantity="one">%d item</item>
         <item quantity="other">%d items</item>

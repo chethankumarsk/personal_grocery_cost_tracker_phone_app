@@ -3,6 +3,7 @@ package dev.groceryledger
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -22,6 +23,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import java.time.LocalDate
 
 /**
  * Regression tests for two reported device bugs:
@@ -115,5 +117,50 @@ class EntrySheetStateTest {
         composeRule.onAllNodesWithText("Add entry").assertCountEquals(1)
         composeRule.onAllNodesWithTag("entry_name").assertCountEquals(1)
         composeRule.onNodeWithTag("entry_name").assertTextContains("")
+    }
+
+    @Test
+    fun recentItemChipFillsNamePriceAndCategory() {
+        runBlocking {
+            app.container.expenseRepository.add(
+                name = "Milk",
+                amountPaise = 6_000,
+                date = LocalDate.now(),
+                category = "Dairy & Eggs",
+            )
+        }
+
+        composeRule.onNodeWithContentDescription("Add item").performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithText("Milk").fetchSemanticsNodes().isNotEmpty()
+        }
+        composeRule.onNodeWithText("Recent items", useUnmergedTree = true).assertExists()
+
+        composeRule.onNodeWithText("Milk").performClick()
+
+        composeRule.onNodeWithTag("entry_name").assertTextContains("Milk")
+        composeRule.onNodeWithTag("entry_amount").assertTextContains("60")
+        composeRule.onNodeWithText("Dairy & Eggs").assertIsSelected()
+    }
+
+    @Test
+    fun recentItemsHideOnceTheNameIsNoLongerBlank() {
+        runBlocking {
+            app.container.expenseRepository.add(
+                name = "Milk",
+                amountPaise = 6_000,
+                date = LocalDate.now(),
+                category = "Dairy & Eggs",
+            )
+        }
+
+        composeRule.onNodeWithContentDescription("Add item").performClick()
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodesWithTag("entry_recent_items").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        composeRule.onNodeWithTag("entry_name").performTextInput("Br")
+
+        composeRule.onAllNodesWithTag("entry_recent_items").assertCountEquals(0)
     }
 }

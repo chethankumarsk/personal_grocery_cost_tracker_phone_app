@@ -9,11 +9,15 @@ import dev.groceryledger.data.local.CategoryEntity
 import dev.groceryledger.data.local.ItemCatalogDao
 import dev.groceryledger.data.local.ItemCatalogEntity
 import dev.groceryledger.domain.date.DateRange
+import dev.groceryledger.domain.history.PriceHistory
+import dev.groceryledger.domain.history.PriceHistoryCalculator
+import dev.groceryledger.domain.history.PricePoint
 import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.CategoryTotal
 import dev.groceryledger.domain.model.DailyTotal
 import dev.groceryledger.domain.model.Expense
 import dev.groceryledger.domain.model.ItemSuggestion
+import dev.groceryledger.domain.model.RecentItem
 import dev.groceryledger.domain.repository.ExpenseRepository
 import dev.groceryledger.domain.suggestion.ItemNames
 import dev.groceryledger.domain.suggestion.SuggestionRanker
@@ -78,6 +82,35 @@ class OfflineExpenseRepository(
                 )
             }
             .distinctUntilChanged()
+    }
+
+    override fun observeRecentItems(limit: Int): Flow<List<RecentItem>> =
+        catalogDao.observeRecent(limit.coerceIn(1, MAX_RECENT_ITEMS)).map { rows ->
+            rows.map {
+                RecentItem(
+                    name = it.name,
+                    lastPricePaise = it.lastPricePaise,
+                    category = it.category,
+                )
+            }
+        }
+
+    override fun observePriceHistory(name: String, limit: Int): Flow<PriceHistory> {
+        val displayName = name.trim()
+        val normalized = ItemNames.normalize(displayName)
+        if (normalized.isEmpty()) {
+            return flowOf(PriceHistoryCalculator.build(displayName, emptyList()))
+        }
+
+        return expenseDao.observePriceHistory(
+            normalizedName = normalized,
+            limit = limit.coerceIn(1, MAX_HISTORY_POINTS),
+        ).map { rows ->
+            PriceHistoryCalculator.build(
+                name = displayName,
+                pointsNewestFirst = rows.map { PricePoint(toDomain(it)) },
+            )
+        }
     }
 
     override suspend fun add(
@@ -334,5 +367,13 @@ class OfflineExpenseRepository(
                 else -> append(char)
             }
         }
+    }
+
+    private companion object {
+        /** Defensive cap; the UI asks for five chips. */
+        const val MAX_RECENT_ITEMS = 10
+
+        /** Upper bound for one item's history; the sheet says when it is truncated. */
+        const val MAX_HISTORY_POINTS = 500
     }
 }

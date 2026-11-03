@@ -55,7 +55,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -66,6 +68,7 @@ import dev.groceryledger.R
 import dev.groceryledger.domain.date.DateRanges
 import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.ItemSuggestion
+import dev.groceryledger.domain.model.RecentItem
 import dev.groceryledger.domain.money.Money
 import dev.groceryledger.ui.AmountError
 import dev.groceryledger.ui.EditorMode
@@ -78,6 +81,7 @@ import java.time.LocalDate
 fun EntrySheet(
     editor: EditorUiState,
     suggestions: List<ItemSuggestion>,
+    recentItems: List<RecentItem>,
     categories: List<String>,
     today: LocalDate,
     onDismiss: () -> Unit,
@@ -88,6 +92,8 @@ fun EntrySheet(
     onAddCategory: (String) -> Unit,
     onSuggestionSelected: (ItemSuggestion) -> Unit,
     onUseLastPrice: (Long) -> Unit,
+    onRecentItemSelected: (RecentItem) -> Unit,
+    onOpenPriceHistory: () -> Unit,
     onSave: () -> Unit,
     onSaveAndAddAnother: () -> Unit,
     onDelete: () -> Unit,
@@ -113,6 +119,7 @@ fun EntrySheet(
 
     val nameFocus = remember { FocusRequester() }
     val amountFocus = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(Unit) {
         runCatching { nameFocus.requestFocus() }
@@ -198,6 +205,21 @@ fun EntrySheet(
                         },
                     )
                 }
+
+                if (editor.mode == EditorMode.ADD &&
+                    editor.name.isBlank() &&
+                    recentItems.isNotEmpty() &&
+                    !editor.isSaving
+                ) {
+                    RecentItemChips(
+                        items = recentItems,
+                        onSelect = { item ->
+                            onRecentItemSelected(item)
+                            amountFocus.requestFocus()
+                        },
+                    )
+                }
+
                 Spacer(Modifier.height(12.dp))
 
                 OutlinedTextField(
@@ -230,6 +252,26 @@ fun EntrySheet(
                         .focusRequester(amountFocus)
                         .testTag("entry_amount"),
                 )
+
+                if (editor.mode == EditorMode.EDIT && !editor.isDirty) {
+                    TextButton(
+                        onClick = {
+                            focusManager.clearFocus()
+                            onOpenPriceHistory()
+                        },
+                        modifier = Modifier
+                            .padding(top = 4.dp)
+                            .testTag("entry_price_history"),
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_price_history),
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(8.dp))
+                        Text(stringResource(R.string.price_history))
+                    }
+                }
 
                 Spacer(Modifier.height(12.dp))
 
@@ -437,6 +479,46 @@ fun EntrySheet(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun RecentItemChips(
+    items: List<RecentItem>,
+    onSelect: (RecentItem) -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 4.dp)
+            .testTag("entry_recent_items"),
+    ) {
+        Text(
+            text = stringResource(R.string.recent_items),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 2.dp)
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items.forEach { item ->
+                AssistChip(
+                    onClick = { onSelect(item) },
+                    label = {
+                        Text(
+                            text = item.name,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    modifier = Modifier.testTag("entry_recent_item"),
+                )
+            }
+        }
     }
 }
 

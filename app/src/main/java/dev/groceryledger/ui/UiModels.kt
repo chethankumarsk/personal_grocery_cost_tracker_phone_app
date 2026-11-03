@@ -5,6 +5,7 @@ import dev.groceryledger.data.update.ReleaseInfo
 import dev.groceryledger.data.update.UpdateFailureReason
 import dev.groceryledger.data.update.UpdateInstallFailure
 import dev.groceryledger.domain.date.DateRange
+import dev.groceryledger.domain.history.PriceHistory
 import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.CategoryTotal
 import dev.groceryledger.domain.model.Expense
@@ -41,6 +42,13 @@ data class CalendarUiState(
     val summary: SpendingSummary,
     val selectedDay: DayDetail,
     val categoryTotals: List<CategoryTotal> = emptyList(),
+)
+
+/** [history] is null only for the first frame after the sheet opens. */
+data class PriceHistoryUiState(
+    val name: String,
+    val history: PriceHistory?,
+    val returnToDaySheet: Boolean,
 )
 
 enum class EditorMode {

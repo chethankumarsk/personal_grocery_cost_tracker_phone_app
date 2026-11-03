@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.4.0 — 3 November 2026
+
+- **Per-item price history.** Tap the history icon on a day-sheet row, or **Price history** while editing an entry, to see every recorded purchase of that item.
+- The sheet shows the latest price and the change versus the previous purchase (amount and percentage), plus average, low, high and purchase count, a trend chart, and the full list of purchases.
+- Tapping a purchase opens it in the editor; edits and deletes refresh the history immediately.
+- **Quick-add recent items.** The add form now shows up to five chips for the items you bought most recently. Tapping one fills the name, last price and last category, so a repeat purchase is a single tap plus Save.
+- The chips disappear as soon as you start typing and only appear on a new entry, so editing an existing one is unchanged.
+- Adds price-history calculator, repository and Compose tests, plus chip coverage (81 JVM tests total).
+
 ## 1.3.2 — 31 October 2026
 
 - **Monthly category totals.** A new collapsible **By category** card under the Day/Week/Month summary shows every category's total and item count for the selected month.

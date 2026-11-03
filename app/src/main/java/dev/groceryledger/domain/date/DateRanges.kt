@@ -56,6 +56,8 @@ object DateRanges {
 
     fun formatDay(date: LocalDate): String = date.format(dayMonth)
 
+    fun formatDayWithYear(date: LocalDate): String = date.format(dayMonthYear)
+
     fun formatFullDate(date: LocalDate): String = date.format(fullDate)
 
     fun formatEditableDate(date: LocalDate): String = date.format(editableDate)

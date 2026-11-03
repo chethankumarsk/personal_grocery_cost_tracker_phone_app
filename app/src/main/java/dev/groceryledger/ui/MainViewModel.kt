@@ -34,6 +34,7 @@ import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.CategoryTotal
 import dev.groceryledger.domain.model.Expense
 import dev.groceryledger.domain.model.ItemSuggestion
+import dev.groceryledger.domain.model.RecentItem
 import dev.groceryledger.domain.model.SpendingSummary
 import dev.groceryledger.domain.model.ThemeMode
 import dev.groceryledger.domain.model.WeekStart
@@ -93,6 +94,7 @@ class MainViewModel(
     private val _visibleMonth = MutableStateFlow(YearMonth.from(_selectedDate.value))
     private val _isDaySheetOpen = MutableStateFlow(false)
     private val _editor = MutableStateFlow<EditorUiState?>(null)
+    private val _priceHistoryTarget = MutableStateFlow(restoredPriceHistoryTarget())
     private val _importPreview = MutableStateFlow<ImportPreviewUiState?>(null)
     private val _pendingImport = MutableStateFlow<ImportAnalysis?>(null)
     private val _importFailure = MutableStateFlow<ImportFailureReason?>(null)
@@ -113,6 +115,23 @@ class MainViewModel(
 
     val editor: StateFlow<EditorUiState?> = _editor.asStateFlow()
     val isDaySheetOpen: StateFlow<Boolean> = _isDaySheetOpen.asStateFlow()
+
+    /** Open price-history sheet; null when closed. */
+    val priceHistory: StateFlow<PriceHistoryUiState?> = _priceHistoryTarget
+        .flatMapLatest { target ->
+            if (target == null) {
+                flowOf(null as PriceHistoryUiState?)
+            } else {
+                repository.observePriceHistory(target.name).map { history ->
+                    PriceHistoryUiState(
+                        name = target.name,
+                        history = history,
+                        returnToDaySheet = target.returnToDaySheet,
+                    )
+                }
+            }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
     val importPreview: StateFlow<ImportPreviewUiState?> = _importPreview.asStateFlow()
     val importFailure: StateFlow<ImportFailureReason?> = _importFailure.asStateFlow()
     val isImportBusy: StateFlow<Boolean> = _isImportBusy.asStateFlow()
@@ -134,6 +153,10 @@ class MainViewModel(
                 flowOf(emptyList())
             }
         }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Quick-add chips for the add form, most recently used first. */
+    val recentItems: StateFlow<List<RecentItem>> = repository.observeRecentItems()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val calendarState: StateFlow<CalendarUiState> = combine(
@@ -288,6 +311,53 @@ class MainViewModel(
         if (returnToDaySheet) _isDaySheetOpen.value = true
     }
 
+    /** Opens the price history of the item on a day-sheet row. */
+    fun openPriceHistory(expense: Expense) {
+        val returnToDaySheet = _isDaySheetOpen.value
+        _isDaySheetOpen.value = false
+        showPriceHistory(expense.name, returnToDaySheet)
+    }
+
+    /** Opens the history of the entry currently being edited. */
+    fun openPriceHistoryFromEditor() {
+        val entry = _editor.value?.existing ?: return
+        showPriceHistory(entry.name, returnToDaySheet = false)
+    }
+
+    fun closePriceHistory() {
+        val target = _priceHistoryTarget.value
+        clearPriceHistoryState()
+        if (target?.returnToDaySheet == true) _isDaySheetOpen.value = true
+    }
+
+    /** Switches the editor to a purchase picked from the history list. */
+    fun editFromPriceHistory(expense: Expense) {
+        val target = _priceHistoryTarget.value
+        clearPriceHistoryState()
+        _editor.value = null
+        openEdit(expense, returnToDaySheet = target?.returnToDaySheet == true)
+    }
+
+    private fun showPriceHistory(name: String, returnToDaySheet: Boolean) {
+        savedStateHandle[KEY_PRICE_HISTORY_NAME] = name
+        savedStateHandle[KEY_PRICE_HISTORY_RETURN_DAY] = returnToDaySheet
+        _priceHistoryTarget.value = PriceHistoryTarget(name, returnToDaySheet)
+    }
+
+    private fun clearPriceHistoryState() {
+        savedStateHandle.remove<String>(KEY_PRICE_HISTORY_NAME)
+        savedStateHandle.remove<Boolean>(KEY_PRICE_HISTORY_RETURN_DAY)
+        _priceHistoryTarget.value = null
+    }
+
+    private fun restoredPriceHistoryTarget(): PriceHistoryTarget? {
+        val name = savedStateHandle.get<String>(KEY_PRICE_HISTORY_NAME) ?: return null
+        return PriceHistoryTarget(
+            name = name,
+            returnToDaySheet = savedStateHandle.get<Boolean>(KEY_PRICE_HISTORY_RETURN_DAY) == true,
+        )
+    }
+
     fun updateName(name: String) {
         _editor.update { current ->
             current?.copy(
@@ -321,6 +391,23 @@ class MainViewModel(
         _editor.update { current ->
             current?.copy(
                 amountText = Money.formatEditable(pricePaise),
+                amountError = null,
+                showSuggestions = false,
+            )
+        }
+    }
+
+    /**
+     * Fills name, last price and last category from a quick-add chip, so a repeat purchase
+     * needs no typing at all.
+     */
+    fun useRecentItem(item: RecentItem) {
+        _editor.update { current ->
+            current?.copy(
+                name = item.name,
+                amountText = Money.formatEditable(item.lastPricePaise),
+                category = item.category,
+                nameError = null,
                 amountError = null,
                 showSuggestions = false,
             )
@@ -802,6 +889,11 @@ class MainViewModel(
         val weekStart: WeekStart,
     )
 
+    private data class PriceHistoryTarget(
+        val name: String,
+        val returnToDaySheet: Boolean,
+    )
+
     private fun ApkDownloadFailure.toInstallFailure(): UpdateInstallFailure = when (this) {
         ApkDownloadFailure.NO_APK,
         ApkDownloadFailure.NETWORK,
@@ -824,6 +916,8 @@ class MainViewModel(
 
     private companion object {
         const val KEY_SELECTED_DATE = "selected_date"
+        const val KEY_PRICE_HISTORY_NAME = "price_history_name"
+        const val KEY_PRICE_HISTORY_RETURN_DAY = "price_history_return_day"
         const val SAVE_SETTLE_MS = 350L
     }
 }

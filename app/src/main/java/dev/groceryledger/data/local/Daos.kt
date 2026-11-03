@@ -21,6 +21,16 @@ interface ExpenseDao {
 
     @Query(
         """
+        SELECT * FROM expenses
+        WHERE name_normalized = :normalizedName
+        ORDER BY expense_date DESC, created_at DESC, id DESC
+        LIMIT :limit
+        """,
+    )
+    fun observePriceHistory(normalizedName: String, limit: Int): Flow<List<ExpenseEntity>>
+
+    @Query(
+        """
         SELECT expense_date AS dateEpochDay,
                SUM(amount_paise) AS totalPaise,
                COUNT(*) AS itemCount
@@ -155,6 +165,29 @@ interface ItemCatalogDao {
         """,
     )
     fun observeSearch(escapedQuery: String): Flow<List<ItemCatalogEntity>>
+
+    /**
+     * Most recently used items, newest first, for the quick-add chips. The category comes
+     * from that item's latest entry, so a chip restores name, price and category without
+     * a schema change.
+     */
+    @Query(
+        """
+        SELECT ic.name AS name,
+               ic.last_price_paise AS lastPricePaise,
+               COALESCE(
+                   (SELECT e.category FROM expenses e
+                    WHERE e.name_normalized = ic.name_normalized
+                    ORDER BY e.expense_date DESC, e.created_at DESC, e.id DESC
+                    LIMIT 1),
+                   'Uncategorized'
+               ) AS category
+        FROM item_catalog ic
+        ORDER BY ic.last_used_at DESC, ic.last_expense_date DESC, ic.name ASC
+        LIMIT :limit
+        """,
+    )
+    fun observeRecent(limit: Int): Flow<List<RecentItemRow>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(item: ItemCatalogEntity)

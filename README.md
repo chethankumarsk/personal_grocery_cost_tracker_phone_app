@@ -3,7 +3,7 @@
 A small, offline-first Android app for tracking grocery spending in INR. The home screen is a calendar; each day holds item entries, and the selected day shows day, week, and month totals. Item names autocomplete from previous purchases, including the last price paid.
 
 - **Package:** `dev.groceryledger`
-- **Version:** 1.3.2 (versionCode 9)
+- **Version:** 1.4.0 (versionCode 10)
 - **Platform:** Android 8.0+ (minSdk 26), compile/target SDK 36
 - **UI:** Kotlin + Jetpack Compose + Material 3
 - **Storage:** Room + DataStore, entirely on-device
@@ -13,7 +13,7 @@ A small, offline-first Android app for tracking grocery spending in INR. The hom
 
 ## Status
 
-The v1 feature set, categories with Settings management, monthly category totals, and both update paths are implemented. 60 JVM tests and 5 instrumentation tests pass, lint reports 0 errors, and a signed 1.3.2 release APK builds. Manual QA on a physical phone is still recommended before daily use.
+The v1 feature set, categories with Settings management, monthly category totals, recent-item chips, per-item price history, and both update paths are implemented. 81 JVM tests and 5 instrumentation tests pass, lint reports 0 errors, and a signed 1.4.0 release APK builds. Manual QA on a physical phone is still recommended before daily use.
 
 ## Features
 
@@ -23,6 +23,8 @@ The v1 feature set, categories with Settings management, monthly category totals
 - Day, week (Mon–Sun by default), and month totals for the selected date.
 - Autocomplete after two characters, ranked by prefix, word-start, contains, then usage/recency.
 - Last price/date shown per suggestion, with a chip to reuse the previous price.
+- Up to five recent-item chips on a new entry: one tap restores the name, last price and last category.
+- Per-item **price history** from the day sheet or the edit form: latest and previous price, change amount and percentage, average/low/high, a trend chart, and every purchase (tap one to edit it).
 - "Save & add another" for entering a whole shopping trip quickly.
 - Settings for week start (Monday/Sunday) and theme (system/light/dark).
 - CSV export and duplicate-safe import, including versioned backups.
@@ -87,7 +89,7 @@ Outputs:
 
 - Debug: `app/build/outputs/apk/debug/app-debug.apk` (package suffix `.debug`, so it can coexist with release builds).
 - Release: `app/build/outputs/apk/release/app-release.apk` (package `dev.groceryledger`).
-- A convenient signed copy is also at `dist/GroceryLedger-1.3.2-release.apk`, with its checksum in `dist/README.txt` and `dist/GroceryLedger-1.3.2-release.apk.sha256`.
+- A convenient signed copy is also at `dist/GroceryLedger-1.4.0-release.apk`, with its checksum in `dist/README.txt` and `dist/GroceryLedger-1.4.0-release.apk.sha256`.
 
 Install on a connected phone with USB debugging:
 
@@ -114,19 +116,19 @@ Download only from this repository’s **Releases** page, never from a mirror, f
 PowerShell:
 
 ```powershell
-Get-FileHash .\GroceryLedger-1.3.2-release.apk -Algorithm SHA256
+Get-FileHash .\GroceryLedger-1.4.0-release.apk -Algorithm SHA256
 ```
 
 Linux/macOS:
 
 ```bash
-sha256sum -c GroceryLedger-1.3.2-release.apk.sha256
+sha256sum -c GroceryLedger-1.4.0-release.apk.sha256
 ```
 
 Verify the signing certificate (the path to `apksigner` depends on your Android SDK):
 
 ```powershell
-apksigner verify --print-certs .\GroceryLedger-1.3.2-release.apk
+apksigner verify --print-certs .\GroceryLedger-1.4.0-release.apk
 ```
 
 The signing certificate SHA-256 is stable across releases:
@@ -137,7 +139,7 @@ The signing certificate SHA-256 is stable across releases:
 
 Use the `.sha256` file attached to the release you downloaded; it is the authoritative checksum for that APK. Rebuilding the same version can change the APK hash, so do not compare against a hash copied from the README or release notes of another build.
 
-The package must be `dev.groceryledger` with versionCode `9` and versionName `1.3.2`. If the hash or certificate does not match, stop and re-download from the Releases page.
+The package must be `dev.groceryledger` with versionCode `10` and versionName `1.4.0`. If the hash or certificate does not match, stop and re-download from the Releases page.
 
 ### If Play Protect warns or blocks the install
 
@@ -171,13 +173,13 @@ Debug APKs use `dev.groceryledger.debug` and a debug key; they are for developme
 The app can check for updates from **Settings → Check for updates**.
 
 - Source: the public repository's GitHub Releases (`releases/latest`), not raw Git tags.
-- A release tag must look like `v1.3.2`; the app compares it numerically with its installed version.
+- A release tag must look like `v1.4.0`; the app compares it numerically with its installed version.
 - The dialog shows the latest version and release notes, with two choices:
   - **Download and install** downloads the APK asset into the app cache, verifies its size and GitHub's SHA-256 digest (when present), then verifies the package name, a higher `versionCode`, and that it is signed with the same key as the installed app. Android's package installer then shows its own confirmation. The first time, Android asks you to allow installs from Grocery Ledger.
   - **Open release page** is the previous browser flow: open the GitHub release and install the signed APK yourself. It remains available when a release has no APK asset or the in-app path fails.
 - The app never installs silently and never updates itself in the background.
 - Checks are manual only. No background polling and no analytics.
-- The latest published release is `v1.3.1`. From 1.3.1, publishing `v1.3.2` makes **Download and install** testable end to end; older builds must be updated manually once.
+- The latest published release is `v1.4.0`. From 1.3.2, publishing `v1.4.0` makes **Download and install** testable end to end; older builds must be updated manually once.
 - Publish the APK as a GitHub release asset; GitHub supplies the SHA-256 digest used for verification. See [docs/RELEASING.md](docs/RELEASING.md).
 
 The app requests `INTERNET` for the update check/download and `REQUEST_INSTALL_PACKAGES` solely so the in-app path can hand a verified APK to Android's installer.

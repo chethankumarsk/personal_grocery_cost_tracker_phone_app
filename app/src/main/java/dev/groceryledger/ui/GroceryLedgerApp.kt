@@ -26,6 +26,7 @@ import dev.groceryledger.AppContainer
 import dev.groceryledger.R
 import dev.groceryledger.ui.calendar.CalendarScreen
 import dev.groceryledger.ui.entry.EntrySheet
+import dev.groceryledger.ui.history.PriceHistorySheet
 import dev.groceryledger.ui.settings.SettingsScreen
 import dev.groceryledger.ui.theme.GroceryLedgerTheme
 import kotlinx.coroutines.withTimeoutOrNull
@@ -55,11 +56,13 @@ private fun AppContent(
     val isDaySheetOpen by viewModel.isDaySheetOpen.collectAsStateWithLifecycle()
     val editor by viewModel.editor.collectAsStateWithLifecycle()
     val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
+    val recentItems by viewModel.recentItems.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val importPreview by viewModel.importPreview.collectAsStateWithLifecycle()
     val importFailure by viewModel.importFailure.collectAsStateWithLifecycle()
     val isImportBusy by viewModel.isImportBusy.collectAsStateWithLifecycle()
     val updateState by viewModel.updateState.collectAsStateWithLifecycle()
+    val priceHistory by viewModel.priceHistory.collectAsStateWithLifecycle()
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -108,6 +111,7 @@ private fun AppContent(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
     ) {
+        val historyState = priceHistory
         if (showSettings) {
             SettingsScreen(
                 settings = settings,
@@ -135,6 +139,12 @@ private fun AppContent(
                 onCancelUpdateDownload = viewModel::cancelUpdateDownload,
                 onDismissUpdate = viewModel::dismissUpdateState,
             )
+        } else if (historyState != null) {
+            PriceHistorySheet(
+                state = historyState,
+                onDismiss = viewModel::closePriceHistory,
+                onEditEntry = viewModel::editFromPriceHistory,
+            )
         } else {
             CalendarScreen(
                 state = calendarState,
@@ -151,11 +161,13 @@ private fun AppContent(
                 onEditEntry = { entry ->
                     viewModel.openEdit(entry, returnToDaySheet = true)
                 },
+                onHistoryEntry = viewModel::openPriceHistory,
                 entrySheet = {
                     editor?.let { current ->
                         EntrySheet(
                             editor = current,
                             suggestions = suggestions,
+                            recentItems = recentItems,
                             categories = categories,
                             today = calendarState.today,
                             onDismiss = viewModel::closeEditor,
@@ -166,6 +178,8 @@ private fun AppContent(
                             onAddCategory = viewModel::addCategory,
                             onSuggestionSelected = viewModel::selectSuggestion,
                             onUseLastPrice = viewModel::useLastPrice,
+                            onRecentItemSelected = viewModel::useRecentItem,
+                            onOpenPriceHistory = viewModel::openPriceHistoryFromEditor,
                             onSave = viewModel::save,
                             onSaveAndAddAnother = viewModel::saveAndAddAnother,
                             onDelete = viewModel::deleteCurrentEntry,

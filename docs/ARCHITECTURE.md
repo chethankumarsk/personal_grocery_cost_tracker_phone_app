@@ -115,7 +115,7 @@ JVM tests use JUnit 4 + Robolectric:
 - APK download tests (size/checksum/cancellation cleanup) against a local HTTP server.
 - Compose/Robolectric smoke tests for activity launch, settings, opening the add sheet, and saving an entry.
 
-There are 60 JVM tests plus 5 instrumentation tests (Room migration and APK verifier). Physical-device performance and visual checks are still pending.
+There are 81 JVM tests plus 5 instrumentation tests (Room migration and APK verifier). Physical-device performance and visual checks are still pending.
 
 ## Update path
 

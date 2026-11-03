@@ -25,7 +25,7 @@ python tools/knowledge_graph.py --status pending
 
 - App: **Grocery Ledger**
 - Package / application ID: **`dev.groceryledger`**
-- Current version: **1.3.2** / versionCode **9**
+- Current version: **1.4.0** / versionCode **10**
 - Repository: `https://github.com/chethankumarsk/personal_grocery_cost_tracker_phone_app`
 - Platform: Android 8.0+ (minSdk 26), compile/target SDK 36
 - Stack: Kotlin, Jetpack Compose, Material 3, Room, DataStore, coroutines
@@ -69,23 +69,23 @@ $env:JAVA_HOME = "C:\Users\Administrator\toolchains\jdk-21.0.12.1+1"
 
 - Debug APK: `app/build/outputs/apk/debug/app-debug.apk` (package `dev.groceryledger.debug`)
 - Release APK: `app/build/outputs/apk/release/app-release.apk` (package `dev.groceryledger`)
-- Convenience copy: `dist/GroceryLedger-1.3.2-release.apk`
+- Convenience copy: `dist/GroceryLedger-1.4.0-release.apk`
 
 Use a release-signed APK for real data. Debug builds cannot be updated into release builds.
 
 ## Current status
 
-- v1 feature set is implemented: calendar, day/week/month totals, monthly category totals, add/edit/delete/undo, autocomplete + last price, categories (including rename/delete in Settings), CSV export/import, settings, update check.
-- 60 JVM tests and 5 instrumentation tests (Room migration + APK verifier) pass; lint has 0 errors.
-- Signed release APK builds (1.3.2 / versionCode 9).
+- v1 feature set is implemented: calendar, day/week/month totals, monthly category totals, add/edit/delete/undo, autocomplete + last price + recent-item chips + per-item price history, categories (including rename/delete in Settings), CSV export/import, settings, update check.
+- 81 JVM tests and 5 instrumentation tests (Room migration + APK verifier) pass; lint has 0 errors.
+- Signed release APK builds (1.4.0 / versionCode 10).
 - Physical-device visual/performance QA is pending.
 - Emulator QA passes: AVD `gl36` (Android 16 / API 36, AEHD 2.2) runs the UiAutomator suite in
   `D:\githubProjects\grocery_ledger_avd_aehd_automation` — 6/6, including the add-entry sheet
   layout regressions. Verified on a Nothing Phone 3a (Android 16, Nothing OS 4.1) over adb with
   Gboard; physical-device visual/accessibility QA is still outstanding.
-- GitHub release **v1.3.1** is the latest published release (signed APK asset, release notes). The update checker finds it; an app already on 1.3.1 reports "You're up to date".
-- In-app update path is implemented (download → size/digest check → package/version/signature check → Android installer) with the release page retained as fallback. Publishing 1.3.2 from 1.3.1 exercises it end to end.
-- To exercise the "update available" path, publish `v1.3.2` from 1.3.1 and use Download and install. GitHub computes the asset `digest` used for checksum verification.
+- GitHub release **v1.4.0** is the latest published release (signed APK asset, `.sha256`, release notes). The update checker finds it; an app already on 1.4.0 reports "You're up to date".
+- In-app update path is implemented (download → size/digest check → package/version/signature check → Android installer) with the release page retained as fallback. The next step is verifying 1.3.2 → 1.4.0 on a device.
+- GitHub computes the asset `digest` used for checksum verification; it must equal the release's `.sha256`.
 
 ## When making a change
 

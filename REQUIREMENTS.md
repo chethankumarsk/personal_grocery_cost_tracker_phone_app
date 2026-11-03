@@ -1,8 +1,8 @@
 # Grocery Cost Tracker — Requirements
 
-- **Version:** 0.8 (category totals)
-- **Date:** 31 October 2026
-- **Status:** v1 + categories + category management + monthly category totals + manual check/in-app update implemented; physical-device QA pending
+- **Version:** 1.0 (price history)
+- **Date:** 3 November 2026
+- **Status:** v1 + categories + category management + monthly category totals + recent-item chips + per-item price history + manual check/in-app update implemented; physical-device QA pending
 - **App name:** Grocery Ledger
 - **Platform:** Android, single user, offline-first, INR
 
@@ -12,11 +12,11 @@
 - JVM test suite: 60 tests covering domain logic, CSV, Room repository behavior, category management/totals, update parsing/versioning, APK download verification, entry-sheet state, activity launch, settings, and add-entry/calendar UI flows.
 - Instrumentation tests (5): v1→v2 migration preserves entries, defaults them to Uncategorized, and seeds presets; the APK verifier accepts a correctly signed newer build and rejects same-version, wrong-package, and non-APK files.
 - Debug and signed release APKs build; `lintDebug` reports no errors.
-- Release package: `dev.groceryledger`; version 1.3.2 / versionCode 9; minSdk 26, compile/target SDK 36.
+- Release package: `dev.groceryledger`; version 1.4.0 / versionCode 10; minSdk 26, compile/target SDK 36.
 - Release keystore created outside the repository; the first real install should use the signed release APK.
 - Network is used only for the user-initiated GitHub Releases check and the update APK download the user explicitly starts.
 - LLM/developer context: `AGENTS.md`, `docs/KNOWLEDGE_GRAPH.md`, and the machine-readable `docs/knowledge-graph.json`.
-- GitHub release **v1.3.1** is the latest published release; the update checker resolves it. Publishing `v1.3.2` exercises the in-app update path from 1.3.1.
+- GitHub release **v1.3.2** is the latest published release; the update checker resolves it. Publishing `v1.4.0` exercises the in-app update path from 1.3.2.
 - Remaining: manual visual/performance QA on a physical Android phone and an end-to-end in-app update test against a published newer release.
 
 ---
@@ -205,6 +205,16 @@ With Sunday week start, the week containing 29 Oct is 25–31 Oct and totals ₹
 - **CAT-8 (Must):** A collapsible **By category** card under the Day/Week/Month summary lists every category with its total and item count for the selected month. `Uncategorized` is included and labelled consistently; categories are ordered by spend, highest first.
 - **CAT-9 (Should, deferred):** Filtering the day/week/month summary and day sheet to a single category.
 
+### 5.10 Price history
+
+- **PRICE-1 (Must):** A purchase history is available for any item name, opened from the day sheet or from the edit form. It lists every recorded purchase with date and amount, newest first.
+- **PRICE-2 (Must):** The header shows the latest price paid and, once there are two purchases, the change versus the previous purchase as an amount, a percentage in tenths, and the previous price/date.
+- **PRICE-3 (Must):** Aggregate stats show average, low, high, and purchase count. All arithmetic is integer paise; the percentage is the only derived ratio and never affects stored money.
+- **PRICE-4 (Must):** A trend chart is shown for two or more purchases and is decorative for accessibility; the stats and text carry the meaning.
+- **PRICE-5 (Must):** A single purchase shows that purchase plus an explanation that there is nothing to compare yet. No chart is drawn.
+- **PRICE-6 (Must):** Tapping a purchase opens that entry in the editor. Editing or deleting entries refreshes the history immediately.
+- **PRICE-7 (Must):** History is matched by normalized item name (case and whitespace insensitive), uses the existing `expenses(name_normalized)` index, and caps at the latest 500 purchases with a visible note when truncated.
+
 ## 6. Data model
 
 Amounts are stored as 64-bit integer paise. Dates are stored as epoch days (`LocalDate.toEpochDay()`), not timestamps.
@@ -348,7 +358,7 @@ Calendar (home)
 | S20 | Import a file while entries already exist | New entries merge in; existing entries are untouched |
 | S21 | Import a file with a newer `format_version` | Rejected with an "update the app" message; no data changes |
 | S22 | Tap Check for updates when the latest release is `v1.0.0` and the app is 1.0.0 | "You're up to date" dialog; no install action |
-| S23 | Tap Check for updates when `v1.3.2` is published and the app is 1.3.1 | Update dialog shows 1.3.2 and notes; Download and install verifies and opens Android's installer, and Open release page opens the browser |
+| S23 | Tap Check for updates when `v1.4.0` is published and the app is 1.3.2 | Update dialog shows 1.4.0 and notes; Download and install verifies and opens Android's installer, and Open release page opens the browser |
 | S24 | Tap Check for updates when the repository has no releases | Friendly "No releases yet" dialog |
 | S25 | Tap Check for updates while offline or rate-limited | Friendly failure message with retry/close; no crash |
 | S26 | Open Settings without tapping Check for updates | No network request is made |
@@ -402,24 +412,22 @@ Calendar (home)
 | --- | --- |
 | Physical-device visual and performance QA | Pending |
 | Publish the first GitHub release (`v1.1.0` or later) | Done - `v1.3.1` is the latest published release with signed APK |
-| End-to-end in-app update against a published newer release | Pending: publish 1.3.2 from 1.3.1; downloader/verifier covered by tests |
+| End-to-end in-app update against a published newer release | Pending: `v1.4.0` is published; verify the 1.3.2 → 1.4.0 upgrade on a device |
 | Optional Play Store publication | Not planned for v1 |
 
 ## 14. Recommended future enhancements
 
 These are intentionally excluded from v1 but worth designing for:
 
-1. **Per-item price history** — a small chart of what an item cost over time, to spot inflation. The data model already supports it.
-2. **Category and monthly breakdown** — where the money went, not just how much.
-3. **Monthly budget and progress** — a single target with a simple bar, no complex envelopes.
-4. **Quick-add recent items** — chips for the last few items bought, skipping typing entirely.
-5. **Home-screen widget / quick-add shortcut** — log a purchase in two taps.
-6. **Shopping-list mode** — check items off while shopping, then convert the list into entries.
-7. **CSV bulk editing / replace-all restore** — apply changes to existing entries by UID, or wipe and restore exactly. v1 import is merge-only for safety.
-8. **Unit-price tracking** — optional quantity + unit (e.g. 1 kg, 500 ml) so ₹/kg can be compared across purchases.
-9. **Receipt photo attachment** — optional image per day or trip, stored locally.
-10. **Weekly/monthly summary notification** — a local-only recap, if ever wanted.
-11. **Optional automatic update check** — a daily check with a non-blocking notification; v1 is manual-only to keep the network policy explicit.
+1. **Category and monthly breakdown** — where the money went, not just how much.
+2. **Monthly budget and progress** — a single target with a simple bar, no complex envelopes.
+3. **Home-screen widget / quick-add shortcut** — log a purchase in two taps.
+4. **Shopping-list mode** — check items off while shopping, then convert the list into entries.
+5. **CSV bulk editing / replace-all restore** — apply changes to existing entries by UID, or wipe and restore exactly. v1 import is merge-only for safety.
+6. **Unit-price tracking** — optional quantity + unit (e.g. 1 kg, 500 ml) so ₹/kg can be compared across purchases.
+7. **Receipt photo attachment** — optional image per day or trip, stored locally.
+8. **Weekly/monthly summary notification** — a local-only recap, if ever wanted.
+9. **Optional automatic update check** — a daily check with a non-blocking notification; v1 is manual-only to keep the network policy explicit.
 
 ## 15. Maintainability and future updates
 
@@ -463,10 +471,10 @@ These are intentionally excluded from v1 but worth designing for:
 
 | Future feature | Seam already provided |
 | --- | --- |
-| Per-item price history | Entries already store item, amount, and date; add a query and a screen. |
+| Per-item price history (done) | Entries already store item, amount, and date; history is one indexed query plus a pure stats calculator. |
 | Categories | Add an optional field/table; totals stay amount sums; filtering is additive. |
 | Monthly budget | Reads the existing month total; separate settings/table; no entry changes. |
-| Quick-add chips | Reuses the suggestion repository and add sheet; no schema change. |
+| Quick-add chips (done) | Reuses the suggestion repository and add sheet; no schema change. |
 | Home-screen widget | Reads through a repository/use case; does not touch calendar UI. |
 | New CSV fields | Version bump; older app versions reject safely; mapper localized. |
 | Automatic update check | `GitHubUpdateChecker` is isolated; add a setting and a non-blocking notification without touching core data. |
@@ -517,7 +525,7 @@ When adding a feature or field:
 | DAY-1..DAY-6 | Done | Day header, item rows, exact total, empty state, add/edit, scroll handling. |
 | ENT-1..ENT-11 | Done | Add/edit/delete/undo, save-and-add-another, validation, discard prompt, date rules, duplicate-tap guard. |
 | SUG-1..SUG-9 | Done | Debounced suggestions, ranking, last price/date, price chip, normalization, offline behavior, catalog cleanup. |
-| SUG-10 | Deferred | Optional recent-item chips. |
+| SUG-10 | Done | Up to five recent-item chips under an empty name field; one tap fills name, last price and last category. |
 | TOT-1..TOT-10 | Done | Exact paise sums, Monday/Sunday weeks, calendar months, Indian formatting, empty zero, local-date semantics, midnight refresh. |
 | SET-1..SET-8 | Done | Week start, theme, CSV export/import, delete all, about/privacy, INR, manual update check with in-app install and browser fallback. |
 | DAT-1..DAT-10 | Done | Local persistence, auto backup, transactional catalog, versioned CSV, UID merge, preview/errors, restore, no expiry. |
@@ -525,6 +533,7 @@ When adding a feature or field:
 | UPD-6 | Deferred | Optional automatic daily check; checks remain manual-only. |
 | CAT-1..CAT-8 | Done | Category column + `categories` table (schema v2), presets, editor chips with "+ New category", day-sheet label, CSV v2 with v1 import, Settings rename/delete with entry reassignment, monthly category totals card. |
 | CAT-9 | Deferred | Category filtering of the summary and day sheet. |
+| PRICE-1..PRICE-7 | Done | Item history sheet with latest/previous price, amount + percent change, average/low/high/count, trend chart, purchase list and tap-to-edit; name-normalized query, 500-point cap. |
 
 ### 17.2 Non-functional requirements
 
@@ -538,7 +547,7 @@ When adding a feature or field:
 | NFR-6 | Done | minSdk 26; compile/target SDK 36. |
 | NFR-7 | Done | No analytics/ads/servers; manual GitHub check plus user-started APK download; backup disclosed. |
 | NFR-8 | Partial | Selected date survives process death; editor draft survives configuration changes but not process death. |
-| NFR-9 | Done | 60 JVM tests across money, dates, ranking, CSV, Room, category management/totals, update/download logic, entry-sheet state, and Compose UI smoke flows. |
+| NFR-9 | Done | 81 JVM tests across money, dates, ranking, CSV, Room, category management/totals, recent-item chips, price history, update/download logic, entry-sheet state, and Compose UI smoke flows. |
 | NFR-10 | Done | Release APK ~8 MB; debug under 20 MB. |
 | NFR-11 | Done | Migration policy and exported schemas in place; v2 migration and its instrumentation test pass. |
 
@@ -619,5 +628,5 @@ Build verification: `testDebugUnitTest` passes, `lintDebug` reports 0 errors, an
 ### 17.6 Remaining work
 
 1. Manual device QA: visual layout, TalkBack, 200% font, performance, install-over-update, and the in-app permission/installer dialogs.
-2. ~~Publish the first GitHub release with the signed APK~~ - done: `v1.3.1` is the latest published release. Next: publish `v1.3.2`, then update from 1.3.1 with **Download and install**.
-3. Optional: automatic update checks, spend-intensity shading, recent-item chips.
+2. ~~Publish the first GitHub release with the signed APK~~ - done: `v1.4.0` is the latest published release. Next: verify the 1.3.2 → 1.4.0 upgrade with **Download and install**.
+3. Optional: automatic update checks, spend-intensity shading.

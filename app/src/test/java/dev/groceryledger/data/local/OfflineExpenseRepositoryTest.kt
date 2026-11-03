@@ -192,4 +192,94 @@ class OfflineExpenseRepositoryTest {
         assertFalse(repository.deleteCategory(Categories.UNCATEGORIZED))
         assertFalse(repository.deleteCategory("Does not exist"))
     }
+
+    @Test
+    fun recentItemsAreNewestFirstAndCarryPriceAndCategory() = runBlocking {
+        repository.add("Bread", 4_000, date, category = "Bakery")
+        repository.add("Milk", 6_000, date, category = "Dairy & Eggs")
+        repository.add("Milk", 6_500, date.plusDays(1), category = "Dairy & Eggs")
+
+        val recent = repository.observeRecentItems(limit = 5).first()
+
+        assertEquals(listOf("Milk", "Bread"), recent.map { it.name })
+        assertEquals(6_500L, recent.first().lastPricePaise)
+        assertEquals("Dairy & Eggs", recent.first().category)
+        assertEquals("Bakery", recent.last().category)
+    }
+
+    @Test
+    fun recentItemsRespectTheLimitAndFollowCategoryRenames() = runBlocking {
+        (1..7).forEach { repository.add("Item $it", 1_000L * it, date) }
+        assertEquals(5, repository.observeRecentItems(limit = 5).first().size)
+
+        repository.add("Chips", 2_000, date, category = "Snacks")
+        assertTrue(repository.renameCategory("Snacks", "Munchies"))
+
+        val chips = repository.observeRecentItems(limit = 5).first().single { it.name == "Chips" }
+        assertEquals("Munchies", chips.category)
+    }
+
+    @Test
+    fun recentItemsDisappearWithTheirEntries() = runBlocking {
+        repository.add("Milk", 6_000, date)
+        assertEquals(1, repository.observeRecentItems(limit = 5).first().size)
+
+        repository.clearAll()
+
+        assertTrue(repository.observeRecentItems(limit = 5).first().isEmpty())
+    }
+
+    @Test
+    fun priceHistoryTracksOneItemNewestFirst() = runBlocking {
+        repository.add("Milk", 6_000, date, category = "Dairy & Eggs")
+        repository.add("Bread", 4_000, date)
+        repository.add("Milk", 6_500, date.plusDays(1), category = "Dairy & Eggs")
+
+        val history = repository.observePriceHistory("Milk").first()
+
+        assertEquals("Milk", history.name)
+        assertEquals(2, history.points.size)
+        assertEquals(date.plusDays(1), history.points.first().date)
+        assertEquals(6_500L, history.points.first().amountPaise)
+        assertEquals("Dairy & Eggs", history.points.first().expense.category)
+        assertEquals(6_000L, history.stats.previousPaise)
+        assertEquals(500L, history.stats.changePaise)
+        assertEquals(83L, history.stats.changePercentTenths)
+    }
+
+    @Test
+    fun priceHistoryIgnoresCaseWhitespaceAndLimit() = runBlocking {
+        repository.add("Milk", 6_000, date)
+        repository.add("Milk", 6_200, date.plusDays(1))
+        repository.add("Milk", 6_400, date.plusDays(2))
+
+        val history = repository.observePriceHistory("  milk  ", limit = 2).first()
+
+        assertEquals("milk", history.name)
+        assertEquals(2, history.points.size)
+        assertEquals(6_400L, history.stats.latestPaise)
+        assertEquals(6_200L, history.points.last().amountPaise)
+    }
+
+    @Test
+    fun renamingAnEntryMovesItToTheNewHistory() = runBlocking {
+        val older = repository.add("Milk", 6_000, date)
+        repository.add("Milk", 6_500, date.plusDays(1))
+
+        repository.update(
+            id = older.id,
+            name = "Milk 2",
+            amountPaise = 6_000,
+            date = date,
+            category = Categories.UNCATEGORIZED,
+        )
+
+        assertEquals(1, repository.observePriceHistory("Milk").first().points.size)
+        assertEquals(1, repository.observePriceHistory("Milk 2").first().points.size)
+    }
+
+    @Test
+    fun priceHistoryIsEmptyForAnUnknownItem() = runBlocking {
+        assertTrue(repository.observePriceHistory("Nothing").first().points.isEmpty())
+    }
 }

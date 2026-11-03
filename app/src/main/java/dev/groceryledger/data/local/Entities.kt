@@ -90,3 +90,13 @@ data class CategoryTotalRow(
     @ColumnInfo(name = "itemCount")
     val itemCount: Int,
 )
+
+/** One entry of the quick-add chip row: catalog price plus the last category used. */
+data class RecentItemRow(
+    @ColumnInfo(name = "name")
+    val name: String,
+    @ColumnInfo(name = "lastPricePaise")
+    val lastPricePaise: Long,
+    @ColumnInfo(name = "category")
+    val category: String,
+)

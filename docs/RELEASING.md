@@ -8,7 +8,7 @@ Edit `app/build.gradle.kts`:
 
 ```kotlin
 versionCode = 8          // must increase for every release
-versionName = "1.3.2"    // semver; tag it as v1.3.2
+versionName = "1.4.0"    // semver; tag it as v1.4.0
 ```
 
 Also update:
@@ -38,15 +38,15 @@ Copy/rename the artifact:
 
 ```powershell
 Copy-Item app\build\outputs\apk\release\app-release.apk `
-  dist\GroceryLedger-1.3.2-release.apk
+  dist\GroceryLedger-1.4.0-release.apk
 ```
 
 Generate the checksum file published beside the APK:
 
 ```powershell
-$hash = (Get-FileHash dist\GroceryLedger-1.3.2-release.apk -Algorithm SHA256).Hash.ToLower()
-"$hash  GroceryLedger-1.3.2-release.apk" |
-  Set-Content -Encoding ascii dist\GroceryLedger-1.3.2-release.apk.sha256
+$hash = (Get-FileHash dist\GroceryLedger-1.4.0-release.apk -Algorithm SHA256).Hash.ToLower()
+"$hash  GroceryLedger-1.4.0-release.apk" |
+  Set-Content -Encoding ascii dist\GroceryLedger-1.4.0-release.apk.sha256
 ```
 
 Do **not** change `applicationId` or the signing key. The APK must be installable over the previous release.
@@ -56,8 +56,8 @@ Do **not** change `applicationId` or the signing key. The APK must be installabl
 Use the GitHub web UI:
 
 1. Open <https://github.com/chethankumarsk/personal_grocery_cost_tracker_phone_app/releases/new>.
-2. Choose a new tag: `v1.3.2` (must start with `v`; semver after that).
-3. Set the release title, e.g. `Grocery Ledger 1.3.2`.
+2. Choose a new tag: `v1.4.0` (must start with `v`; semver after that).
+3. Set the release title, e.g. `Grocery Ledger 1.4.0`.
 4. Add release notes. These are shown in the app's update dialog.
 5. Attach the signed APK and its `.sha256` checksum file as release assets.
 6. Leave **Set as the latest release** selected.
@@ -67,11 +67,11 @@ Use the GitHub web UI:
 If you have the GitHub CLI and Git installed, the equivalent is:
 
 ```powershell
-git tag v1.3.2
-git push origin v1.3.2
-gh release create v1.3.2 .\dist\GroceryLedger-1.3.2-release.apk `
-  .\dist\GroceryLedger-1.3.2-release.apk.sha256 `
-  --title "Grocery Ledger 1.3.2" `
+git tag v1.4.0
+git push origin v1.4.0
+gh release create v1.4.0 .\dist\GroceryLedger-1.4.0-release.apk `
+  .\dist\GroceryLedger-1.4.0-release.apk.sha256 `
+  --title "Grocery Ledger 1.4.0" `
   --notes "Release notes here"
 ```
 
@@ -98,7 +98,7 @@ Then in the app: **Settings → Check for updates**. The update dialog should sh
 - **Download and install** downloads the `.apk` asset, checks GitHub's `size` and `sha256:` digest, verifies the package name, `versionCode`, and signing certificate, then opens Android's installer. The first time, allow installs from Grocery Ledger when prompted.
 - **Open release page** is the browser fallback and works even if the asset is missing.
 
-The tag must be numerically newer than the installed `versionName`. `v1.3.2` is newer than `1.3.1`. Do not rely on `versionCode` alone because GitHub does not know the APK's versionCode. The APK itself must have a higher `versionCode` than the installed build, or the in-app verifier refuses it.
+The tag must be numerically newer than the installed `versionName`. `v1.4.0` is newer than `1.3.2`. Do not rely on `versionCode` alone because GitHub does not know the APK's versionCode. The APK itself must have a higher `versionCode` than the installed build, or the in-app verifier refuses it.
 
 GitHub computes the asset digest automatically. Confirm the response includes a `digest` beginning with `sha256:`; without it, the app still verifies the signing key but cannot check the download checksum. The digest must match the local `.sha256` file.
 
@@ -114,7 +114,7 @@ Either use **Download and install** in the app, or download the APK from the rel
 
 Existing data remains in the Room database.
 
-To test the in-app path end to end, install 1.3.1 (the first build with the button), publish 1.3.2, then check for updates and use **Download and install**. The app must reject a debug-signed or differently signed APK, which is expected.
+To test the in-app path end to end, install 1.3.2, publish 1.4.0, then check for updates and use **Download and install**. The app must reject a debug-signed or differently signed APK, which is expected.
 
 ## Notes
 

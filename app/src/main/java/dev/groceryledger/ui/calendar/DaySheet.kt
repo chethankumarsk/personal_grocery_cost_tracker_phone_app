@@ -17,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -25,6 +26,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -45,6 +48,7 @@ fun DaySheet(
     onDismiss: () -> Unit,
     onAdd: () -> Unit,
     onEdit: (Expense) -> Unit,
+    onHistory: (Expense) -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -78,7 +82,11 @@ fun DaySheet(
                 EmptyDayState(onAdd = onAdd)
             } else {
                 detail.entries.forEach { entry ->
-                    EntryRow(entry = entry, onClick = { onEdit(entry) })
+                    EntryRow(
+                        entry = entry,
+                        onClick = { onEdit(entry) },
+                        onHistory = { onHistory(entry) },
+                    )
                     HorizontalDivider(
                         color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                     )
@@ -153,38 +161,59 @@ private fun EmptyDayState(onAdd: () -> Unit) {
 private fun EntryRow(
     entry: Expense,
     onClick: () -> Unit,
+    onHistory: () -> Unit,
 ) {
     val description = stringResource(
         R.string.edit_item_description,
         entry.name,
         Money.format(entry.amountPaise),
     )
+    val historyDescription = stringResource(R.string.price_history_for, entry.name)
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClickLabel = description, onClick = onClick)
-            .semantics(mergeDescendants = true) { contentDescription = description }
-            .padding(vertical = 14.dp),
+        modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = entry.name,
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            if (entry.category != Categories.UNCATEGORIZED) {
+        Row(
+            modifier = Modifier
+                .weight(1f)
+                .clickable(onClickLabel = description, onClick = onClick)
+                .semantics(mergeDescendants = true) { contentDescription = description }
+                .padding(vertical = 14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = entry.category,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = entry.name,
+                    style = MaterialTheme.typography.bodyLarge,
                 )
+                if (entry.category != Categories.UNCATEGORIZED) {
+                    Text(
+                        text = entry.category,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
+            Text(
+                text = Money.format(entry.amountPaise),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+            )
         }
-        Text(
-            text = Money.format(entry.amountPaise),
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.Medium,
-        )
+
+        IconButton(
+            onClick = onHistory,
+            modifier = Modifier
+                .testTag("entry_history")
+                .semantics { contentDescription = historyDescription },
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_price_history),
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }

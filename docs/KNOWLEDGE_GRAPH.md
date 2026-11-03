@@ -2,15 +2,16 @@
 
 This is the map for LLM sessions and humans joining the project. It complements the requirements and code; it does not replace either.
 
-- **Machine-readable graph:** [`docs/knowledge-graph.json`](knowledge-graph.json) - 65 nodes, 103 edges
+- **Machine-readable graph:** [`docs/knowledge-graph.json`](knowledge-graph.json) - 70 nodes, 114 edges
 - **LLM handoff:** [`AGENTS.md`](../AGENTS.md)
 - **Requirements + completion matrix:** [`REQUIREMENTS.md`](../REQUIREMENTS.md)
 - **Architecture:** [`docs/ARCHITECTURE.md`](ARCHITECTURE.md)
 - **Release process:** [`docs/RELEASING.md`](RELEASING.md)
+- **Next feature design:** [`docs/PRICE_HISTORY_DESIGN.md`](PRICE_HISTORY_DESIGN.md) (proposed)
 
-Last updated: 30 October 2026.
+Last updated: 2 November 2026.
 
-Current release: **1.3.2** (versionCode 9), built locally. Categories can be added from the editor, renamed/deleted in Settings, and totalled by month under the calendar summary. The manual GitHub update check and verified in-app download/install are implemented; `v1.3.1` is the latest published release, so publishing `v1.3.2` will exercise the update path end to end.
+Current release: **1.4.0** (versionCode 10), published on GitHub. Categories can be added from the editor, renamed/deleted in Settings, and totalled by month under the calendar summary. Recent-item chips and per-item price history are part of this release. The verified in-app update path is live, so the next device step is confirming 1.3.2 → 1.4.0.
 
 ## How to use it in a new session
 
@@ -75,6 +76,8 @@ flowchart TD
 | Add/edit/delete, undo, save & add another, validation | Done | `ui/entry/EntrySheet.kt`, `ui/MainViewModel.kt` |
 | Day / week / month totals, integer paise, INR formatting | Done | `domain/`, `data/local/` |
 | Autocomplete, ranking, last price/date, price chip | Done | `domain/suggestion/`, `data/local/` |
+| Recent-item quick-add chips (name, price, category) | Done | `ui/entry/`, `data/local/` |
+| Per-item price history: change, stats, chart, tap-to-edit | Done | `domain/history/`, `ui/history/`, `data/local/` |
 | Categories: presets, custom, day-sheet label, Settings rename/delete | Done | `ui/entry/`, `ui/settings/`, `data/local/` |
 | Monthly category totals under the summary | Done | `ui/calendar/`, `data/local/` |
 | CSV export/import, versioning, UID dedupe, preview/errors | Done | `data/csv/`, `data/backup/`, `ui/settings/` |
@@ -82,11 +85,11 @@ flowchart TD
 | Manual GitHub Releases update check | Done | `data/update/`, `ui/settings/` |
 | In-app download, checksum/signature verification, Android installer | Done | `data/update/ApkDownloader.kt`, `ApkVerifier.kt`, `ApkInstaller.kt` |
 | Signed release build, stable package/key, versioning | Done | `app/build.gradle.kts`, keystore outside repo |
-| Unit, Room, CSV, update/download, and Compose/Robolectric tests | Done — 60 JVM tests + 5 instrumentation tests | `app/src/test/`, `app/src/androidTest/` |
+| Unit, Room, CSV, update/download, and Compose/Robolectric tests | Done — 81 JVM tests + 5 instrumentation tests | `app/src/test/`, `app/src/androidTest/` |
 | Lint / build | Done — 0 lint errors | `./gradlew lintDebug` |
 | Physical-device visual/performance QA | Pending | Needs a real phone |
 | Automatic update checks | Deferred | Decision needed on privacy/UX |
-| Spend-intensity shading, recent-item chips | Deferred optional requirements | `REQUIREMENTS.md` |
+| Spend-intensity shading | Deferred optional requirement | `REQUIREMENTS.md` |
 
 Full per-requirement status is in `REQUIREMENTS.md` section 17.
 
@@ -113,6 +116,8 @@ Full per-requirement status is in `REQUIREMENTS.md` section 17.
 
 Name input → 120 ms debounce → `observeSuggestions` → escaped catalog `LIKE` query (≤500) → `SuggestionRanker` → six suggestions with last price/date.
 
+With the name field empty on a new entry, `EntrySheet` instead shows up to five `recentItems` from `ItemCatalogDao.observeRecent` (newest by `last_used_at`, category taken from that item's latest entry). One tap fills name, last price and last category via `MainViewModel.useRecentItem`.
+
 ### Category management
 
 Settings → Categories → rename or delete. Renames update the category row and every entry using it; deletes reassign entries to `Uncategorized` and remove the row. `Uncategorized` is virtual and never edited. Repository methods are `renameCategory` and `deleteCategory`.
@@ -120,6 +125,10 @@ Settings → Categories → rename or delete. Renames update the category row an
 ### Category totals
 
 The calendar's **By category** card reads `observeCategoryTotals` for the selected month: a grouped SQL sum over `expenses`, ordered by spend. It is collapsible and includes `Uncategorized`; no totals are stored.
+
+### Price history
+
+The day-sheet history icon or the editor's **Price history** button sets `MainViewModel.priceHistory`; `OfflineExpenseRepository.observePriceHistory` queries `expenses` by `name_normalized` (newest first, limit 500) and `PriceHistoryCalculator` derives stats in integer paise (percent in tenths). `PriceHistorySheet` renders the header, stats grid, sampled chart (≤200 points) and the tap-to-edit list.
 
 ### CSV restore
 

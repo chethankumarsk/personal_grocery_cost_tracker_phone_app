@@ -1,12 +1,14 @@
 package dev.groceryledger.domain.repository
 
 import dev.groceryledger.domain.date.DateRange
+import dev.groceryledger.domain.history.PriceHistory
 import dev.groceryledger.domain.model.AppSettings
 import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.CategoryTotal
 import dev.groceryledger.domain.model.DailyTotal
 import dev.groceryledger.domain.model.Expense
 import dev.groceryledger.domain.model.ItemSuggestion
+import dev.groceryledger.domain.model.RecentItem
 import dev.groceryledger.domain.model.ThemeMode
 import dev.groceryledger.domain.model.WeekStart
 import kotlinx.coroutines.flow.Flow
@@ -18,6 +20,12 @@ interface ExpenseRepository {
     fun observeCategoryTotals(range: DateRange): Flow<List<CategoryTotal>>
     fun observeEntries(date: LocalDate): Flow<List<Expense>>
     fun observeSuggestions(query: String): Flow<List<ItemSuggestion>>
+
+    /** Most recently used items for the quick-add chips, newest first. */
+    fun observeRecentItems(limit: Int = 5): Flow<List<RecentItem>>
+
+    /** Every recorded purchase of one item, newest first, with derived stats. */
+    fun observePriceHistory(name: String, limit: Int = 500): Flow<PriceHistory>
 
     /** Category names for the picker, sorted. [Categories.UNCATEGORIZED] is virtual. */
     fun observeCategories(): Flow<List<String>>

@@ -87,6 +87,7 @@ fun CalendarScreen(
     onCloseDaySheet: () -> Unit,
     onAddFromDay: () -> Unit,
     onEditEntry: (dev.groceryledger.domain.model.Expense) -> Unit,
+    onHistoryEntry: (dev.groceryledger.domain.model.Expense) -> Unit,
     entrySheet: @Composable () -> Unit,
 ) {
     Scaffold(
@@ -164,6 +165,7 @@ fun CalendarScreen(
             onDismiss = onCloseDaySheet,
             onAdd = onAddFromDay,
             onEdit = onEditEntry,
+            onHistory = onHistoryEntry,
         )
     }
 
