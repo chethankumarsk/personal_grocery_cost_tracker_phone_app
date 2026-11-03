@@ -36,6 +36,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -82,33 +83,38 @@ fun ShoppingListScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 8.dp),
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it.take(80) },
-                    label = { Text(stringResource(R.string.shopping_item_name)) },
-                    singleLine = true,
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("shopping_item_name"),
-                )
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { value ->
-                        amount = value.filter { it.isDigit() || it == '.' }.take(12)
-                    },
-                    label = { Text(stringResource(R.string.shopping_amount)) },
-                    prefix = { Text(stringResource(R.string.currency_symbol)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier
-                        .width(132.dp)
-                        .testTag("shopping_amount"),
-                )
+            val largeText = LocalDensity.current.fontScale >= LARGE_TEXT_SCALE
+            if (largeText) {
+                // The fixed-width amount field cannot fit its label at 200% font, so stack.
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ItemNameField(
+                        value = name,
+                        onValueChange = { name = it },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    AmountField(
+                        value = amount,
+                        onValueChange = { amount = it },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            } else {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    ItemNameField(
+                        value = name,
+                        onValueChange = { name = it },
+                        modifier = Modifier.weight(1f),
+                    )
+                    AmountField(
+                        value = amount,
+                        onValueChange = { amount = it },
+                        modifier = Modifier.width(132.dp),
+                    )
+                }
             }
 
             Button(
@@ -204,3 +210,41 @@ fun ShoppingListScreen(
         }
     }
 }
+
+@Composable
+private fun ItemNameField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = { onValueChange(it.take(MAX_NAME_LENGTH)) },
+        label = { Text(stringResource(R.string.shopping_item_name)) },
+        singleLine = true,
+        modifier = modifier.testTag("shopping_item_name"),
+    )
+}
+
+@Composable
+private fun AmountField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = { raw ->
+            onValueChange(raw.filter { it.isDigit() || it == '.' }.take(12))
+        },
+        label = { Text(stringResource(R.string.shopping_amount)) },
+        prefix = { Text(stringResource(R.string.currency_symbol)) },
+        singleLine = true,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        modifier = modifier.testTag("shopping_amount"),
+    )
+}
+
+/** Font scale at which the side-by-side item/amount row no longer fits. */
+private const val LARGE_TEXT_SCALE = 1.5f
+private const val MAX_NAME_LENGTH = 80

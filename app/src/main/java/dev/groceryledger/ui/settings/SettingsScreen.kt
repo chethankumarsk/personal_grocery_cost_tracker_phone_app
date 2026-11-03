@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import dev.groceryledger.BuildConfig
 import dev.groceryledger.R
 import dev.groceryledger.data.csv.ImportRowErrorReason
+import dev.groceryledger.data.update.ReleaseNotes
 import dev.groceryledger.data.update.UpdateFailureReason
 import dev.groceryledger.data.update.UpdateInstallFailure
 import dev.groceryledger.domain.model.AppSettings
@@ -737,7 +738,7 @@ fun SettingsScreen(
                                 modifier = Modifier.padding(top = 12.dp),
                             )
                             Text(
-                                text = state.release.notes.take(2_000),
+                                text = ReleaseNotes.plainText(state.release.notes),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 4.dp),

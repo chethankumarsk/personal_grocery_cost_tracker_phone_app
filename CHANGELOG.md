@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.5.1 — 3 November 2026
+
+- Fixes the budget card at 200% font: the amount used to sit on top of "Monthly budget"; it now moves below the month instead of colliding.
+- Fixes the shopping list at 200% font: the item and amount fields stack so "Amount" no longer breaks mid-word.
+- The month title in the calendar can use two lines, so large fonts show "November 2026" instead of "November…".
+- The update dialog shows GitHub release notes as readable plain text instead of raw Markdown (`**`, backticks, `---`).
+- Adds layout regression tests for both large-font cases and tests for the notes formatter (116 JVM tests total).
+
 ## 1.5.0 — 3 November 2026
 
 - **Category filter.** Chips under the Day/Week/Month summary narrow the totals, the calendar day amounts and the day sheet to one category, including `Uncategorized`. Renaming or deleting the active category keeps the filter valid.

@@ -231,7 +231,7 @@ private fun MonthSelector(
             text = DateRanges.formatMonthTitle(month),
             style = MaterialTheme.typography.titleLarge,
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
         )
@@ -325,13 +325,14 @@ private fun SummaryCard(
 }
 
 @Composable
-private fun BudgetCard(
+internal fun BudgetCard(
     spentPaise: Long,
     budgetPaise: Long,
     monthLabel: String,
     modifier: Modifier = Modifier,
 ) {
     val progress = BudgetProgress(spentPaise = spentPaise, budgetPaise = budgetPaise)
+    val largeText = LocalDensity.current.fontScale >= LARGE_TEXT_SCALE
 
     Surface(
         modifier = modifier,
@@ -340,27 +341,19 @@ private fun BudgetCard(
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.monthly_budget),
-                        style = MaterialTheme.typography.titleSmall,
-                    )
-                    Text(
-                        text = monthLabel,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(top = 2.dp),
-                    )
+            if (largeText) {
+                // At 200% font the title and the amount collide in one row, so stack them.
+                Column {
+                    BudgetHeading(monthLabel = monthLabel)
+                    BudgetSpentOf(spentPaise = spentPaise, budgetPaise = budgetPaise)
                 }
-                Text(
-                    text = stringResource(
-                        R.string.budget_spent_of,
-                        Money.format(spentPaise),
-                        Money.format(budgetPaise),
-                    ),
-                    style = MaterialTheme.typography.labelMedium,
-                )
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        BudgetHeading(monthLabel = monthLabel)
+                    }
+                    BudgetSpentOf(spentPaise = spentPaise, budgetPaise = budgetPaise)
+                }
             }
             LinearProgressIndicator(
                 progress = { progress.fraction },
@@ -391,6 +384,36 @@ private fun BudgetCard(
         }
     }
 }
+
+@Composable
+private fun BudgetHeading(monthLabel: String) {
+    Text(
+        text = stringResource(R.string.monthly_budget),
+        style = MaterialTheme.typography.titleSmall,
+    )
+    Text(
+        text = monthLabel,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+        modifier = Modifier.padding(top = 2.dp),
+    )
+}
+
+@Composable
+private fun BudgetSpentOf(spentPaise: Long, budgetPaise: Long) {
+    Text(
+        text = stringResource(
+            R.string.budget_spent_of,
+            Money.format(spentPaise),
+            Money.format(budgetPaise),
+        ),
+        style = MaterialTheme.typography.labelMedium,
+        modifier = Modifier.padding(top = 4.dp),
+    )
+}
+
+/** Font scale at which side-by-side rows no longer fit and have to stack. */
+private const val LARGE_TEXT_SCALE = 1.5f
 
 @Composable
 private fun CategoryFilterRow(

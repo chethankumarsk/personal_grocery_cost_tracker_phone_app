@@ -537,7 +537,7 @@
       "type": "status",
       "label": "Physical-device QA",
       "status": "pending",
-      "summary": "Visual, performance, accessibility scaling, and install-over-update checks on a real phone. Emulator (AVD gl36, API 36, AEHD) UI automation passes 5/5, including the add-entry sheet regressions; a physical device is still outstanding."
+      "summary": "Visual, performance, accessibility scaling, and install-over-update checks on a real phone. Emulator QA (AVD gl36, API 36, AEHD) now covers the 1.4.0 to 1.5.0 in-app update, a 200% font pass (fixed in 1.5.1) and a 19,697-entry import; launcher placement, TalkBack and the OS install prompt still need a physical device."
     },
     {
       "id": "future.price-history",
