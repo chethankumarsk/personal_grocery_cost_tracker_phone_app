@@ -16,7 +16,7 @@
 - Release keystore created outside the repository; the first real install should use the signed release APK.
 - Network is used only for the user-initiated GitHub Releases check and the update APK download the user explicitly starts.
 - LLM/developer context: `AGENTS.md`, `docs/KNOWLEDGE_GRAPH.md`, and the machine-readable `docs/knowledge-graph.json`.
-- GitHub release **v1.4.0** is the latest published release; the update checker resolves it. Publishing `v1.5.1` exercises the in-app update path from 1.4.0.
+- GitHub release **v1.5.1** is the latest published release; the update checker resolves it. The 1.4.0 → 1.5.1 upgrade still needs a physical-device pass.
 - Remaining: manual visual/performance QA on a physical Android phone and an end-to-end in-app update test against a published newer release.
 
 ---
@@ -456,7 +456,7 @@ Calendar (home)
 | --- | --- |
 | Physical-device visual and performance QA | Pending |
 | Publish the first GitHub release (`v1.1.0` or later) | Done - `v1.5.1` is the latest published release with signed APK |
-| End-to-end in-app update against a published newer release | Pending: `v1.5.1` is published; verify the 1.4.0 → 1.5.1 upgrade on a device |
+| End-to-end in-app update against a published newer release | Partial: verified on the emulator (1.4.0 → 1.5.0 and 1.5.0 → 1.5.1, data intact); the 1.4.0 → 1.5.1 upgrade on a physical device is pending |
 | Optional Play Store publication | Not planned for v1 |
 
 ## 14. Recommended future enhancements

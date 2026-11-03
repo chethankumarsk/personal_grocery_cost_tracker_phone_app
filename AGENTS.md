@@ -83,8 +83,8 @@ Use a release-signed APK for real data. Debug builds cannot be updated into rele
   `D:\githubProjects\grocery_ledger_avd_aehd_automation` — 6/6, including the add-entry sheet
   layout regressions. Verified on a Nothing Phone 3a (Android 16, Nothing OS 4.1) over adb with
   Gboard; physical-device visual/accessibility QA is still outstanding.
-- GitHub release **v1.5.0** is the latest published release; 1.5.1 fixes three large-font defects found in QA and is ready to publish.
-- In-app update path is implemented (download → size/digest check → package/version/signature check → Android installer) with the release page retained as fallback. Verified end to end on the emulator for 1.4.0 → 1.5.0; the same flow is pending on a physical device.
+- GitHub release **v1.5.1** is the latest published release (signed APK, `.sha256`, release notes); the update checker finds it and 1.5.1 reports "You're up to date".
+- In-app update path is implemented (download → size/digest check → package/version/signature check → Android installer) with the release page retained as fallback. Verified end to end on the emulator for 1.4.0 → 1.5.0 and 1.5.0 → 1.5.1 with data intact; the same flow is pending on a physical device.
 - GitHub computes the asset `digest` used for checksum verification; it must equal the release's `.sha256`.
 
 ## When making a change

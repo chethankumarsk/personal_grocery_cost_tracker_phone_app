@@ -184,7 +184,7 @@ The app can check for updates from **Settings → Check for updates**.
   - **Open release page** is the previous browser flow: open the GitHub release and install the signed APK yourself. It remains available when a release has no APK asset or the in-app path fails.
 - The app never installs silently and never updates itself in the background.
 - Checks are manual only. No background polling and no analytics.
-- The latest published release is `v1.4.0`. From 1.4.0, publishing `v1.5.1` makes **Download and install** testable end to end; older builds must be updated manually once.
+- The latest published release is `v1.5.1`. Older builds must be updated manually once; from 1.4.0 or later, **Download and install** works end to end.
 - Publish the APK as a GitHub release asset; GitHub supplies the SHA-256 digest used for verification. See [docs/RELEASING.md](docs/RELEASING.md).
 
 The app requests `INTERNET` for the update check/download and `REQUEST_INSTALL_PACKAGES` solely so the in-app path can hand a verified APK to Android's installer.
