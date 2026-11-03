@@ -16,4 +16,5 @@ enum class ThemeMode {
 data class AppSettings(
     val weekStart: WeekStart = WeekStart.MONDAY,
     val theme: ThemeMode = ThemeMode.SYSTEM,
+    val monthlyBudgetPaise: Long? = null,
 )

@@ -100,6 +100,14 @@
       "summary": "Full-screen per-item history: latest and previous price, change text, stats grid, trend chart and tap-to-edit list."
     },
     {
+      "id": "ui.shopping-screen",
+      "type": "file",
+      "label": "ShoppingListScreen",
+      "status": "done",
+      "path": "app/src/main/java/dev/groceryledger/ui/shopping/ShoppingListScreen.kt",
+      "summary": "Scratch shopping list: add item with optional amount, check off, delete, clear, and convert checked items to today's entries."
+    },
+    {
       "id": "ui.entry-sheet",
       "type": "file",
       "label": "EntrySheet",
@@ -332,6 +340,38 @@
       "summary": "PRICE-1..7 implemented: history list, change stats, chart, single-purchase state, tap-to-edit, 500-point cap."
     },
     {
+      "id": "req.budget",
+      "type": "requirement_group",
+      "label": "BUD requirements",
+      "status": "done",
+      "path": "REQUIREMENTS.md",
+      "summary": "BUD-1..4 implemented: optional device budget, progress card, integer-paise maths, not exported."
+    },
+    {
+      "id": "req.unit-price",
+      "type": "requirement_group",
+      "label": "UNIT requirements",
+      "status": "done",
+      "path": "REQUIREMENTS.md",
+      "summary": "UNIT-1..6 implemented: optional quantity/unit, thousandths storage, normalized unit price, schema and CSV v3 with old-version import."
+    },
+    {
+      "id": "req.shopping",
+      "type": "requirement_group",
+      "label": "SHOP requirements",
+      "status": "done",
+      "path": "REQUIREMENTS.md",
+      "summary": "SHOP-1..4 implemented: device-only list, add/check/delete/clear, checked priced items become today's entries."
+    },
+    {
+      "id": "req.widget",
+      "type": "requirement_group",
+      "label": "WIDGET requirements",
+      "status": "done",
+      "path": "REQUIREMENTS.md",
+      "summary": "WIDGET-1..3 implemented: today total plus quick-add action, refresh on app pause and every 30 minutes."
+    },
+    {
       "id": "req.totals",
       "type": "requirement_group",
       "label": "TOT requirements",
@@ -535,6 +575,46 @@
       "status": "done",
       "path": "ui/history + domain/history + data/local",
       "summary": "Every recorded purchase of one item with change versus the previous purchase, average/low/high, trend chart, tap-to-edit, and a 500-point cap."
+    },
+    {
+      "id": "feature.category-filter",
+      "type": "feature",
+      "label": "Category filter",
+      "status": "done",
+      "path": "ui/calendar + data/local",
+      "summary": "Chips under the summary narrow day/week/month totals, calendar day amounts and the day sheet to one category."
+    },
+    {
+      "id": "feature.budget",
+      "type": "feature",
+      "label": "Monthly budget",
+      "status": "done",
+      "path": "ui/calendar + ui/settings + data/settings",
+      "summary": "Optional DataStore budget with a progress card: spend, remaining or over-budget; hidden while a category filter is active."
+    },
+    {
+      "id": "feature.unit-price",
+      "type": "feature",
+      "label": "Unit price",
+      "status": "done",
+      "path": "domain/model + ui/entry + data/local + data/csv",
+      "summary": "Optional quantity and unit (kg, g, L, ml, piece) with a derived per-kg, per-litre or per-piece preview and display; schema and CSV v3."
+    },
+    {
+      "id": "feature.shopping-list",
+      "type": "feature",
+      "label": "Shopping list",
+      "status": "done",
+      "path": "ui/shopping + data/local",
+      "summary": "Device-only list with optional amounts; checked priced items convert into today's entries and leave the list. Schema v4."
+    },
+    {
+      "id": "feature.widget",
+      "type": "feature",
+      "label": "Home-screen widget",
+      "status": "done",
+      "path": "widget + MainActivity",
+      "summary": "Today's total plus a one-tap add action that opens the add form; refreshes on app pause and every 30 minutes."
     },
     {
       "id": "future.widget",
@@ -1048,6 +1128,76 @@
       "from": "test.unit",
       "to": "domain.history",
       "type": "tests"
+    },
+    {
+      "from": "feature.category-filter",
+      "to": "req.totals",
+      "type": "implements"
+    },
+    {
+      "from": "feature.category-filter",
+      "to": "ui.calendar",
+      "type": "surfaces_in"
+    },
+    {
+      "from": "feature.category-filter",
+      "to": "data.local",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.budget",
+      "to": "req.budget",
+      "type": "implements"
+    },
+    {
+      "from": "feature.budget",
+      "to": "ui.calendar",
+      "type": "surfaces_in"
+    },
+    {
+      "from": "feature.budget",
+      "to": "data.settings",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.unit-price",
+      "to": "req.unit-price",
+      "type": "implements"
+    },
+    {
+      "from": "feature.unit-price",
+      "to": "ui.entry-sheet",
+      "type": "surfaces_in"
+    },
+    {
+      "from": "feature.unit-price",
+      "to": "data.local",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.shopping-list",
+      "to": "req.shopping",
+      "type": "implements"
+    },
+    {
+      "from": "feature.shopping-list",
+      "to": "ui.shopping-screen",
+      "type": "surfaces_in"
+    },
+    {
+      "from": "feature.shopping-list",
+      "to": "data.local",
+      "type": "depends_on"
+    },
+    {
+      "from": "feature.widget",
+      "to": "req.widget",
+      "type": "implements"
+    },
+    {
+      "from": "feature.widget",
+      "to": "data.local",
+      "type": "depends_on"
     },
     {
       "from": "future.widget",

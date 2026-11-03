@@ -17,6 +17,7 @@ import dev.groceryledger.domain.model.CategoryTotal
 import dev.groceryledger.domain.model.DailyTotal
 import dev.groceryledger.domain.model.Expense
 import dev.groceryledger.domain.model.ItemSuggestion
+import dev.groceryledger.domain.model.QuantityUnit
 import dev.groceryledger.domain.model.RecentItem
 import dev.groceryledger.domain.repository.ExpenseRepository
 import dev.groceryledger.domain.suggestion.ItemNames
@@ -35,8 +36,15 @@ class OfflineExpenseRepository(
     private val categoryDao: CategoryDao,
 ) : ExpenseRepository {
 
-    override fun observeDailyTotals(range: DateRange): Flow<List<DailyTotal>> =
-        expenseDao.observeDailyTotals(range.start.toEpochDay(), range.endInclusive.toEpochDay())
+    override fun observeDailyTotals(
+        range: DateRange,
+        category: String?,
+    ): Flow<List<DailyTotal>> =
+        expenseDao.observeDailyTotals(
+            range.start.toEpochDay(),
+            range.endInclusive.toEpochDay(),
+            category,
+        )
             .map { rows ->
                 rows.map {
                     DailyTotal(
@@ -47,8 +55,12 @@ class OfflineExpenseRepository(
                 }
             }
 
-    override fun observeTotal(range: DateRange): Flow<Long> =
-        expenseDao.observeTotal(range.start.toEpochDay(), range.endInclusive.toEpochDay())
+    override fun observeTotal(range: DateRange, category: String?): Flow<Long> =
+        expenseDao.observeTotal(
+            range.start.toEpochDay(),
+            range.endInclusive.toEpochDay(),
+            category,
+        )
             .map { it ?: 0L }
 
     override fun observeCategoryTotals(range: DateRange): Flow<List<CategoryTotal>> =
@@ -65,8 +77,8 @@ class OfflineExpenseRepository(
             }
         }
 
-    override fun observeEntries(date: LocalDate): Flow<List<Expense>> =
-        expenseDao.observeEntriesForDate(date.toEpochDay())
+    override fun observeEntries(date: LocalDate, category: String?): Flow<List<Expense>> =
+        expenseDao.observeEntriesForDate(date.toEpochDay(), category)
             .map { rows -> rows.map(::toDomain) }
 
     override fun observeSuggestions(query: String): Flow<List<ItemSuggestion>> {
@@ -118,9 +130,12 @@ class OfflineExpenseRepository(
         amountPaise: Long,
         date: LocalDate,
         category: String,
+        quantityMilli: Long?,
+        unit: String?,
     ): Expense {
         val trimmed = validateName(name)
         val resolvedCategory = resolveCategory(category)
+        val (quantity, quantityUnit) = normalizeQuantity(quantityMilli, unit)
         val now = System.currentTimeMillis()
         val entity = ExpenseEntity(
             entryUid = UUID.randomUUID().toString(),
@@ -131,6 +146,8 @@ class OfflineExpenseRepository(
             createdAt = now,
             updatedAt = now,
             category = resolvedCategory,
+            quantityMilli = quantity,
+            unit = quantityUnit,
         )
 
         return database.withTransaction {
@@ -147,9 +164,12 @@ class OfflineExpenseRepository(
         amountPaise: Long,
         date: LocalDate,
         category: String,
+        quantityMilli: Long?,
+        unit: String?,
     ) {
         val trimmed = validateName(name)
         val resolvedCategory = resolveCategory(category)
+        val (quantity, quantityUnit) = normalizeQuantity(quantityMilli, unit)
         database.withTransaction {
             val existing = expenseDao.getById(id) ?: return@withTransaction
             val updated = existing.copy(
@@ -159,6 +179,8 @@ class OfflineExpenseRepository(
                 expenseDate = date.toEpochDay(),
                 updatedAt = System.currentTimeMillis(),
                 category = resolvedCategory,
+                quantityMilli = quantity,
+                unit = quantityUnit,
             )
             ensureCategoryExists(resolvedCategory)
             expenseDao.update(updated)
@@ -179,6 +201,7 @@ class OfflineExpenseRepository(
 
     override suspend fun restore(expense: Expense) {
         val normalized = ItemNames.normalize(expense.name)
+        val (quantity, quantityUnit) = normalizeQuantity(expense.quantityMilli, expense.unit)
         database.withTransaction {
             val category = resolveCategory(expense.category)
             ensureCategoryExists(category)
@@ -192,6 +215,8 @@ class OfflineExpenseRepository(
                     createdAt = expense.createdAt,
                     updatedAt = expense.updatedAt,
                     category = category,
+                    quantityMilli = quantity,
+                    unit = quantityUnit,
                 ),
             )
             refreshCatalog(normalized)
@@ -257,6 +282,7 @@ class OfflineExpenseRepository(
         if (expenses.isEmpty()) return 0
         val now = System.currentTimeMillis()
         val entities = expenses.mapIndexed { index, expense ->
+            val (quantity, quantityUnit) = normalizeQuantity(expense.quantityMilli, expense.unit)
             ExpenseEntity(
                 entryUid = expense.uid,
                 name = expense.name,
@@ -266,6 +292,8 @@ class OfflineExpenseRepository(
                 createdAt = if (expense.createdAt > 0) expense.createdAt else now + index,
                 updatedAt = now,
                 category = resolveCategory(expense.category),
+                quantityMilli = quantity,
+                unit = quantityUnit,
             )
         }
 
@@ -328,7 +356,16 @@ class OfflineExpenseRepository(
         createdAt = entity.createdAt,
         updatedAt = entity.updatedAt,
         category = entity.category,
+        quantityMilli = entity.quantityMilli,
+        unit = entity.unit,
     )
+
+    /** A quantity is only kept with a known unit; either value missing means "no quantity". */
+    private fun normalizeQuantity(quantityMilli: Long?, unit: String?): Pair<Long?, String?> {
+        val parsedUnit = QuantityUnit.fromId(unit) ?: return null to null
+        val quantity = quantityMilli?.takeIf { it > 0L } ?: return null to null
+        return quantity to parsedUnit.id
+    }
 
     /** Falls back to Uncategorized for blank, oversized or reserved values. */
     private fun resolveCategory(category: String): String =

@@ -62,6 +62,8 @@ import dev.groceryledger.domain.model.AppSettings
 import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.ThemeMode
 import dev.groceryledger.domain.model.WeekStart
+import dev.groceryledger.domain.money.Money
+import dev.groceryledger.domain.money.MoneyParseResult
 import dev.groceryledger.ui.ImportFailureReason
 import dev.groceryledger.ui.ImportPreviewUiState
 import dev.groceryledger.ui.UpdateUiState
@@ -80,6 +82,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onWeekStartChange: (WeekStart) -> Unit,
     onThemeChange: (ThemeMode) -> Unit,
+    onBudgetChange: (Long?) -> Unit,
     onRenameCategory: (String, String) -> Unit,
     onDeleteCategory: (String) -> Unit,
     onExport: (Uri) -> Unit,
@@ -97,6 +100,9 @@ fun SettingsScreen(
     var showDeleteDialog by rememberSaveable { mutableStateOf(false) }
     var renameTarget by rememberSaveable { mutableStateOf("") }
     var deleteTarget by rememberSaveable { mutableStateOf("") }
+    var showBudgetDialog by rememberSaveable { mutableStateOf(false) }
+    var budgetText by rememberSaveable { mutableStateOf("") }
+    var budgetInvalid by rememberSaveable { mutableStateOf(false) }
 
     val exportLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("text/csv"),
@@ -232,6 +238,60 @@ fun SettingsScreen(
                     )
                 }
             }
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
+
+            SectionHeader(stringResource(R.string.settings_budget))
+
+            Text(
+                text = stringResource(R.string.monthly_budget),
+                style = MaterialTheme.typography.titleSmall,
+            )
+            Text(
+                text = settings.monthlyBudgetPaise?.let { budget ->
+                    stringResource(R.string.monthly_budget_value, Money.format(budget))
+                } ?: stringResource(R.string.monthly_budget_not_set),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                TextButton(
+                    onClick = {
+                        budgetText = settings.monthlyBudgetPaise
+                            ?.let { Money.formatEditable(it) }
+                            .orEmpty()
+                        budgetInvalid = false
+                        showBudgetDialog = true
+                    },
+                ) {
+                    Text(
+                        stringResource(
+                            if (settings.monthlyBudgetPaise == null) {
+                                R.string.set_budget
+                            } else {
+                                R.string.change_budget
+                            },
+                        ),
+                    )
+                }
+                if (settings.monthlyBudgetPaise != null) {
+                    TextButton(onClick = { onBudgetChange(null) }) {
+                        Text(stringResource(R.string.clear_budget))
+                    }
+                }
+            }
+            Text(
+                text = stringResource(R.string.monthly_budget_description),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
 
             HorizontalDivider(modifier = Modifier.padding(vertical = 20.dp))
 
@@ -404,6 +464,55 @@ fun SettingsScreen(
                 modifier = Modifier.padding(top = 12.dp, bottom = 24.dp),
             )
         }
+    }
+
+    if (showBudgetDialog) {
+        AlertDialog(
+            onDismissRequest = { showBudgetDialog = false },
+            title = { Text(stringResource(R.string.set_monthly_budget)) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = budgetText,
+                        onValueChange = { value ->
+                            budgetText = value
+                                .filter { it.isDigit() || it == '.' }
+                                .take(12)
+                            budgetInvalid = false
+                        },
+                        label = { Text(stringResource(R.string.amount)) },
+                        prefix = { Text(stringResource(R.string.currency_symbol)) },
+                        singleLine = true,
+                        isError = budgetInvalid,
+                        supportingText = if (budgetInvalid) {
+                            { Text(stringResource(R.string.budget_invalid)) }
+                        } else {
+                            null
+                        },
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val parsed = Money.parse(budgetText)
+                        if (parsed is MoneyParseResult.Valid && parsed.paise > 0L) {
+                            onBudgetChange(parsed.paise)
+                            showBudgetDialog = false
+                        } else {
+                            budgetInvalid = true
+                        }
+                    },
+                ) {
+                    Text(stringResource(R.string.save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBudgetDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 
     if (showDeleteDialog) {
@@ -855,6 +964,8 @@ private fun ImportRowErrorReason.labelRes(): Int = when (this) {
     ImportRowErrorReason.FUTURE_DATE -> R.string.import_reason_future_date
     ImportRowErrorReason.INVALID_NAME -> R.string.import_reason_invalid_name
     ImportRowErrorReason.INVALID_AMOUNT -> R.string.import_reason_invalid_amount
+    ImportRowErrorReason.INVALID_QUANTITY -> R.string.import_reason_invalid_quantity
+    ImportRowErrorReason.INVALID_UNIT -> R.string.import_reason_invalid_unit
     ImportRowErrorReason.COLUMN_COUNT -> R.string.import_reason_column_count
     ImportRowErrorReason.INVALID_VERSION -> R.string.import_reason_invalid_version
 }

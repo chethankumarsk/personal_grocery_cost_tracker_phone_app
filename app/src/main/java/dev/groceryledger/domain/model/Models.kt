@@ -11,7 +11,20 @@ data class Expense(
     val createdAt: Long,
     val updatedAt: Long,
     val category: String = Categories.UNCATEGORIZED,
-)
+    val quantityMilli: Long? = null,
+    val unit: String? = null,
+) {
+    /** Normalized price per kg, litre or piece, when a quantity was recorded. */
+    val unitPricePaise: Long?
+        get() = UnitPrices.perBaseUnitPaise(
+            amountPaise = amountPaise,
+            quantityMilli = quantityMilli,
+            unit = QuantityUnit.fromId(unit),
+        )
+
+    val unitPriceLabel: String?
+        get() = QuantityUnit.fromId(unit)?.let { UnitPrices.priceUnitLabel(it) }
+}
 
 data class DailyTotal(
     val date: LocalDate,

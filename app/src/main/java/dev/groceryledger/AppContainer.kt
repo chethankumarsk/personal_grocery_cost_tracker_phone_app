@@ -5,6 +5,7 @@ import androidx.room.Room
 import dev.groceryledger.data.backup.CsvBackupManager
 import dev.groceryledger.data.local.GroceryDatabase
 import dev.groceryledger.data.local.OfflineExpenseRepository
+import dev.groceryledger.data.local.OfflineShoppingListRepository
 import dev.groceryledger.data.settings.DataStoreSettingsRepository
 import dev.groceryledger.data.update.GitHubUpdateChecker
 import dev.groceryledger.data.update.UpdateChecker
@@ -13,6 +14,8 @@ import dev.groceryledger.data.update.ApkInstaller
 import dev.groceryledger.data.update.ApkVerifier
 import dev.groceryledger.domain.repository.ExpenseRepository
 import dev.groceryledger.domain.repository.SettingsRepository
+import dev.groceryledger.domain.repository.ShoppingListRepository
+import dev.groceryledger.domain.shopping.ShoppingListConverter
 import dev.groceryledger.domain.time.DateProvider
 import dev.groceryledger.domain.time.SystemDateProvider
 import java.io.File
@@ -25,7 +28,11 @@ class AppContainer(context: Context) {
         GroceryDatabase::class.java,
         GroceryDatabase.NAME,
     )
-        .addMigrations(GroceryDatabase.MIGRATION_1_2)
+        .addMigrations(
+            GroceryDatabase.MIGRATION_1_2,
+            GroceryDatabase.MIGRATION_2_3,
+            GroceryDatabase.MIGRATION_3_4,
+        )
         .addCallback(GroceryDatabase.CALLBACK_SEED_CATEGORIES)
         .build()
 
@@ -37,6 +44,15 @@ class AppContainer(context: Context) {
     )
 
     val settingsRepository: SettingsRepository = DataStoreSettingsRepository(appContext)
+
+    val shoppingListRepository: ShoppingListRepository = OfflineShoppingListRepository(
+        database.shoppingListDao(),
+    )
+
+    val shoppingListConverter: ShoppingListConverter = ShoppingListConverter(
+        shoppingListRepository = shoppingListRepository,
+        expenseRepository = expenseRepository,
+    )
 
     val dateProvider: DateProvider = SystemDateProvider
 

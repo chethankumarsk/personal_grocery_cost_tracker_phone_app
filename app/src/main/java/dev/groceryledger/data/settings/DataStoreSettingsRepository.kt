@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dev.groceryledger.domain.model.AppSettings
@@ -35,6 +36,8 @@ class DataStoreSettingsRepository(
                 theme = preferences[Keys.THEME]
                     ?.let { stored -> ThemeMode.entries.firstOrNull { it.name == stored } }
                     ?: ThemeMode.SYSTEM,
+                monthlyBudgetPaise = preferences[Keys.MONTHLY_BUDGET]
+                    ?.takeIf { it > 0L },
             )
         }
         .distinctUntilChanged()
@@ -51,8 +54,19 @@ class DataStoreSettingsRepository(
         }
     }
 
+    override suspend fun setMonthlyBudget(paise: Long?) {
+        context.settingsDataStore.edit { preferences ->
+            if (paise == null || paise <= 0L) {
+                preferences.remove(Keys.MONTHLY_BUDGET)
+            } else {
+                preferences[Keys.MONTHLY_BUDGET] = paise
+            }
+        }
+    }
+
     private object Keys {
         val WEEK_START = stringPreferencesKey("week_start")
         val THEME = stringPreferencesKey("theme")
+        val MONTHLY_BUDGET = longPreferencesKey("monthly_budget_paise")
     }
 }

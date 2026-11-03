@@ -194,6 +194,17 @@ private fun EntryRow(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
+                entry.unitPricePaise?.let { perUnit ->
+                    Text(
+                        text = stringResource(
+                            R.string.unit_price_compact,
+                            Money.format(perUnit),
+                            entry.unitPriceLabel.orEmpty(),
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                }
             }
             Text(
                 text = Money.format(entry.amountPaise),

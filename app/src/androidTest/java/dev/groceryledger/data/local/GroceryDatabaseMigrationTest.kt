@@ -56,6 +56,71 @@ class GroceryDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun migrationFrom2To3AddsEmptyQuantityAndKeepsEntries() {
+        helper.createDatabase(TEST_DB, 2).use { database ->
+            database.execSQL(
+                """
+                INSERT INTO expenses
+                    (entry_uid, name, name_normalized, amount_paise, expense_date, created_at, updated_at, category)
+                VALUES
+                    ('22222222-2222-2222-2222-222222222222', 'Rice', 'rice', 9000, 20328, 1000, 1000, 'Grains')
+                """.trimIndent(),
+            )
+        }
+
+        val migrated = helper.runMigrationsAndValidate(
+            TEST_DB,
+            3,
+            true,
+            GroceryDatabase.MIGRATION_2_3,
+        )
+
+        migrated.query("SELECT name, amount_paise, category, quantity_milli, unit FROM expenses")
+            .use { cursor ->
+                assertTrue(cursor.moveToFirst())
+                assertEquals("Rice", cursor.getString(0))
+                assertEquals(9_000L, cursor.getLong(1))
+                assertEquals("Grains", cursor.getString(2))
+                assertTrue(cursor.isNull(3))
+                assertTrue(cursor.isNull(4))
+            }
+    }
+
+    @Test
+    fun migrationFrom3To4AddsAnEmptyShoppingList() {
+        helper.createDatabase(TEST_DB, 3).use { database ->
+            database.execSQL(
+                """
+                INSERT INTO expenses
+                    (entry_uid, name, name_normalized, amount_paise, expense_date,
+                     created_at, updated_at, category, quantity_milli, unit)
+                VALUES
+                    ('33333333-3333-3333-3333-333333333333', 'Milk', 'milk', 6000, 20328,
+                     1000, 1000, 'Dairy', 1500, 'L')
+                """.trimIndent(),
+            )
+        }
+
+        val migrated = helper.runMigrationsAndValidate(
+            TEST_DB,
+            4,
+            true,
+            GroceryDatabase.MIGRATION_3_4,
+        )
+
+        migrated.query("SELECT COUNT(*) FROM shopping_items").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals(0, cursor.getInt(0))
+        }
+        migrated.query("SELECT name, quantity_milli, unit FROM expenses").use { cursor ->
+            assertTrue(cursor.moveToFirst())
+            assertEquals("Milk", cursor.getString(0))
+            assertEquals(1_500L, cursor.getLong(1))
+            assertEquals("L", cursor.getString(2))
+        }
+    }
+
     private companion object {
         const val TEST_DB = "migration-test.db"
     }

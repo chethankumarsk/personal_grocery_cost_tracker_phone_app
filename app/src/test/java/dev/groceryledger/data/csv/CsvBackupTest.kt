@@ -18,7 +18,8 @@ class CsvBackupTest {
         val firstUid = UUID.randomUUID().toString()
         val secondUid = UUID.randomUUID().toString()
         val entries = listOf(
-            expense("Milk, \"full cream\"", 6_050, "2026-10-29", firstUid),
+            expense("Milk, \"full cream\"", 6_050, "2026-10-29", firstUid)
+                .copy(quantityMilli = 1_500, unit = "L"),
             expense("Bread\n loaf", 4_000, "2026-10-27", secondUid),
         )
 
@@ -33,8 +34,11 @@ class CsvBackupTest {
         val byUid = analysis.entries.associateBy { it.uid }
         assertEquals("Milk, \"full cream\"", byUid.getValue(firstUid).name)
         assertEquals(6_050L, byUid.getValue(firstUid).amountPaise)
+        assertEquals(1_500L, byUid.getValue(firstUid).quantityMilli)
+        assertEquals("L", byUid.getValue(firstUid).unit)
         assertEquals("Bread\n loaf", byUid.getValue(secondUid).name)
         assertEquals(LocalDate.parse("2026-10-27"), byUid.getValue(secondUid).date)
+        assertEquals(null, byUid.getValue(secondUid).quantityMilli)
     }
 
     @Test
@@ -73,7 +77,7 @@ class CsvBackupTest {
         val uid = UUID.randomUUID().toString()
         val csv = """
             format_version,entry_uid,date,item,amount_inr,category
-            3,$uid,2026-10-29,Milk,60.00,Dairy & Eggs
+            4,$uid,2026-10-29,Milk,60.00,Dairy & Eggs
         """.trimIndent()
 
         assertThrows(NewerBackupException::class.java) {
@@ -106,6 +110,61 @@ class CsvBackupTest {
         val analysis = CsvBackup.analyze(csv, emptySet(), today, now)
 
         assertEquals("Grains, Pulses", analysis.entries.single().category)
+    }
+
+    @Test
+    fun versionTwoFileStillImportsWithoutQuantity() {
+        val uid = UUID.randomUUID().toString()
+        val csv = """
+            format_version,entry_uid,date,item,amount_inr,category
+            2,$uid,2026-10-29,Milk,60.00,Dairy & Eggs
+        """.trimIndent()
+
+        val analysis = CsvBackup.analyze(csv, emptySet(), today, now)
+
+        assertEquals(1, analysis.entries.size)
+        assertEquals("Dairy & Eggs", analysis.entries.single().category)
+        assertEquals(null, analysis.entries.single().quantityMilli)
+        assertEquals(null, analysis.entries.single().unit)
+    }
+
+    @Test
+    fun invalidQuantityOrUnitRowsAreReported() {
+        val csv = """
+            format_version,entry_uid,date,item,amount_inr,category,quantity,unit
+            3,${UUID.randomUUID()},2026-10-29,Milk,60.00,Dairy & Eggs,1.5,kg
+            3,${UUID.randomUUID()},2026-10-29,Tea,20.00,Other,0,kg
+            3,${UUID.randomUUID()},2026-10-29,Rice,90.00,Grains & Pulses,1.2345,kg
+            3,${UUID.randomUUID()},2026-10-29,Oil,150.00,Other,1,bottle
+            3,${UUID.randomUUID()},2026-10-29,Salt,10.00,Other,1,
+        """.trimIndent()
+
+        val analysis = CsvBackup.analyze(csv, emptySet(), today, now)
+
+        assertEquals(1, analysis.entries.size)
+        assertEquals(1_500L, analysis.entries.single().quantityMilli)
+        assertEquals("kg", analysis.entries.single().unit)
+        assertEquals(
+            listOf(
+                ImportRowErrorReason.INVALID_QUANTITY,
+                ImportRowErrorReason.INVALID_QUANTITY,
+                ImportRowErrorReason.INVALID_UNIT,
+                ImportRowErrorReason.INVALID_UNIT,
+            ),
+            analysis.errors.map { it.reason },
+        )
+    }
+
+    @Test
+    fun missingQuantityColumnsInAVersionThreeFileIsRejected() {
+        val csv = """
+            format_version,entry_uid,date,item,amount_inr,category
+            3,${UUID.randomUUID()},2026-10-29,Milk,60.00,Dairy & Eggs
+        """.trimIndent()
+
+        assertThrows(BadBackupException::class.java) {
+            CsvBackup.analyze(csv, emptySet(), today, now)
+        }
     }
 
     @Test

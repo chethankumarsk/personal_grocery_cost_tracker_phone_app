@@ -9,6 +9,8 @@ enum class ImportRowErrorReason {
     FUTURE_DATE,
     INVALID_NAME,
     INVALID_AMOUNT,
+    INVALID_QUANTITY,
+    INVALID_UNIT,
     COLUMN_COUNT,
     INVALID_VERSION,
 }

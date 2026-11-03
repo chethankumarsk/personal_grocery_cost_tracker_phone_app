@@ -2,16 +2,16 @@
 
 This is the map for LLM sessions and humans joining the project. It complements the requirements and code; it does not replace either.
 
-- **Machine-readable graph:** [`docs/knowledge-graph.json`](knowledge-graph.json) - 70 nodes, 114 edges
+- **Machine-readable graph:** [`docs/knowledge-graph.json`](knowledge-graph.json) - 80 nodes, 128 edges
 - **LLM handoff:** [`AGENTS.md`](../AGENTS.md)
 - **Requirements + completion matrix:** [`REQUIREMENTS.md`](../REQUIREMENTS.md)
 - **Architecture:** [`docs/ARCHITECTURE.md`](ARCHITECTURE.md)
 - **Release process:** [`docs/RELEASING.md`](RELEASING.md)
 - **Next feature design:** [`docs/PRICE_HISTORY_DESIGN.md`](PRICE_HISTORY_DESIGN.md) (proposed)
 
-Last updated: 2 November 2026.
+Last updated: 3 November 2026.
 
-Current release: **1.4.0** (versionCode 10), published on GitHub. Categories can be added from the editor, renamed/deleted in Settings, and totalled by month under the calendar summary. Recent-item chips and per-item price history are part of this release. The verified in-app update path is live, so the next device step is confirming 1.3.2 → 1.4.0.
+Current release: **1.5.0** (versionCode 11), published on GitHub. Categories can be added from the editor, renamed/deleted in Settings, and totalled by month under the calendar summary. This release adds category filtering, an optional monthly budget, optional quantity/unit pricing (schema v3, CSV v3), a device-only shopping list and a home-screen widget (schema v4). The verified in-app update path is live, so the next device step is confirming 1.4.0 → 1.5.0.
 
 ## How to use it in a new session
 
@@ -78,6 +78,11 @@ flowchart TD
 | Autocomplete, ranking, last price/date, price chip | Done | `domain/suggestion/`, `data/local/` |
 | Recent-item quick-add chips (name, price, category) | Done | `ui/entry/`, `data/local/` |
 | Per-item price history: change, stats, chart, tap-to-edit | Done | `domain/history/`, `ui/history/`, `data/local/` |
+| Category filter for totals, calendar and day sheet | Done | `ui/calendar/`, `data/local/` |
+| Optional monthly budget with progress card | Done | `ui/settings/`, `ui/calendar/`, `data/settings/` |
+| Optional quantity/unit with derived unit price (schema/CSV v3) | Done | `domain/model/Units.kt`, `ui/entry/`, `data/csv/`, `data/local/` |
+| Shopping list with checked-to-entry conversion (schema v4) | Done | `ui/shopping/`, `domain/shopping/`, `data/local/` |
+| Home-screen widget with today total and quick add | Done | `widget/`, `MainActivity.kt` |
 | Categories: presets, custom, day-sheet label, Settings rename/delete | Done | `ui/entry/`, `ui/settings/`, `data/local/` |
 | Monthly category totals under the summary | Done | `ui/calendar/`, `data/local/` |
 | CSV export/import, versioning, UID dedupe, preview/errors | Done | `data/csv/`, `data/backup/`, `ui/settings/` |
@@ -85,7 +90,7 @@ flowchart TD
 | Manual GitHub Releases update check | Done | `data/update/`, `ui/settings/` |
 | In-app download, checksum/signature verification, Android installer | Done | `data/update/ApkDownloader.kt`, `ApkVerifier.kt`, `ApkInstaller.kt` |
 | Signed release build, stable package/key, versioning | Done | `app/build.gradle.kts`, keystore outside repo |
-| Unit, Room, CSV, update/download, and Compose/Robolectric tests | Done — 81 JVM tests + 5 instrumentation tests | `app/src/test/`, `app/src/androidTest/` |
+| Unit, Room, CSV, update/download, and Compose/Robolectric tests | Done — 109 JVM tests + 7 instrumentation tests | `app/src/test/`, `app/src/androidTest/` |
 | Lint / build | Done — 0 lint errors | `./gradlew lintDebug` |
 | Physical-device visual/performance QA | Pending | Needs a real phone |
 | Automatic update checks | Deferred | Decision needed on privacy/UX |
@@ -99,8 +104,8 @@ Full per-requirement status is in `REQUIREMENTS.md` section 17.
 2. Entries store epoch-day dates, not timestamps.
 3. Totals are derived SQL sums; never stored.
 4. `entry_uid` is stable across export/import; import is merge-only and idempotent.
-5. CSV is versioned (`format_version=2`, category column); older app versions must reject newer files.
-6. Room schema changes are additive with migrations; no destructive migrations.
+5. CSV is versioned (`format_version=3`, category plus quantity/unit); older app versions must reject newer files.
+6. Room schema changes are additive with migrations; no destructive migrations. Schema v3 adds nullable quantity/unit to entries; schema v4 adds the device-only shopping list.
 7. `applicationId` (`dev.groceryledger`) and the release signing key never change.
 8. Network use is limited to the user-started GitHub update check and APK download. No analytics, ads, or sync. `REQUEST_INSTALL_PACKAGES` exists only to hand a verified APK to Android's installer.
 9. UI → ViewModel → repository interfaces → Room/CSV; UI never imports Room entities.
@@ -129,6 +134,18 @@ The calendar's **By category** card reads `observeCategoryTotals` for the select
 ### Price history
 
 The day-sheet history icon or the editor's **Price history** button sets `MainViewModel.priceHistory`; `OfflineExpenseRepository.observePriceHistory` queries `expenses` by `name_normalized` (newest first, limit 500) and `PriceHistoryCalculator` derives stats in integer paise (percent in tenths). `PriceHistorySheet` renders the header, stats grid, sampled chart (≤200 points) and the tap-to-edit list.
+
+### Category filter and budget
+
+`MainViewModel.categoryFilter` is part of the calendar key, so every total, daily aggregate and day-sheet query takes a nullable category and re-emits when it changes. The monthly budget lives in DataStore (`monthly_budget_paise`); `BudgetProgress` derives the fraction, remainder and overspend in integer paise, and the calendar shows it only when no filter is active.
+
+### Unit price
+
+Entries may carry `quantity_milli` (thousandths of the unit) and `unit` (kg, g, L, ml, piece). `UnitPrices.perBaseUnitPaise` normalizes to per-kg, per-litre or per-piece for display and never stores the result; the editor previews it live. Schema v3 adds both columns additively, and CSV v3 writes `quantity`/`unit` while still importing v1/v2.
+
+### Shopping list and widget
+
+The list lives in its own `shopping_items` table (schema v4) and is never exported. `ShoppingListConverter` turns checked items with an amount into entries for today and deletes them. The widget asks the repository for today's total on each update (and on app pause) and opens `MainActivity` with a quick-add extra handled by the Compose root.
 
 ### CSV restore
 

@@ -140,7 +140,7 @@ class EntrySheetStateTest {
 
         composeRule.onNodeWithTag("entry_name").assertTextContains("Milk")
         composeRule.onNodeWithTag("entry_amount").assertTextContains("60")
-        composeRule.onNodeWithText("Dairy & Eggs").assertIsSelected()
+        composeRule.onNodeWithTag("editor_category_Dairy & Eggs").assertIsSelected()
     }
 
     @Test

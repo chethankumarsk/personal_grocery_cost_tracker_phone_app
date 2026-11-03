@@ -42,6 +42,7 @@ data class CalendarUiState(
     val summary: SpendingSummary,
     val selectedDay: DayDetail,
     val categoryTotals: List<CategoryTotal> = emptyList(),
+    val categoryFilter: String? = null,
 )
 
 /** [history] is null only for the first frame after the sheet opens. */
@@ -67,6 +68,10 @@ enum class AmountError {
     TOO_LARGE,
 }
 
+enum class QuantityError {
+    INVALID,
+}
+
 data class EditorUiState(
     val mode: EditorMode,
     val date: LocalDate,
@@ -75,6 +80,10 @@ data class EditorUiState(
     val category: String = Categories.UNCATEGORIZED,
     val nameError: NameError? = null,
     val amountError: AmountError? = null,
+    val quantityText: String = "",
+    val unitId: String? = null,
+    val quantityError: QuantityError? = null,
+    val showQuantity: Boolean = false,
     val isSaving: Boolean = false,
     val showSuggestions: Boolean = false,
     val existing: Expense? = null,
@@ -83,6 +92,8 @@ data class EditorUiState(
     val originalAmountText: String = "",
     val originalDate: LocalDate = date,
     val originalCategory: String = Categories.UNCATEGORIZED,
+    val originalQuantityText: String = "",
+    val originalUnitId: String? = null,
 ) {
     val isDirty: Boolean
         get() = when (mode) {
@@ -91,7 +102,9 @@ data class EditorUiState(
                 name != originalName ||
                     amountText != originalAmountText ||
                     date != originalDate ||
-                    category != originalCategory
+                    category != originalCategory ||
+                    quantityText != originalQuantityText ||
+                    unitId != originalUnitId
         }
 }
 

@@ -15,10 +15,10 @@ import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
 
 interface ExpenseRepository {
-    fun observeDailyTotals(range: DateRange): Flow<List<DailyTotal>>
-    fun observeTotal(range: DateRange): Flow<Long>
+    fun observeDailyTotals(range: DateRange, category: String? = null): Flow<List<DailyTotal>>
+    fun observeTotal(range: DateRange, category: String? = null): Flow<Long>
     fun observeCategoryTotals(range: DateRange): Flow<List<CategoryTotal>>
-    fun observeEntries(date: LocalDate): Flow<List<Expense>>
+    fun observeEntries(date: LocalDate, category: String? = null): Flow<List<Expense>>
     fun observeSuggestions(query: String): Flow<List<ItemSuggestion>>
 
     /** Most recently used items for the quick-add chips, newest first. */
@@ -35,6 +35,8 @@ interface ExpenseRepository {
         amountPaise: Long,
         date: LocalDate,
         category: String = Categories.UNCATEGORIZED,
+        quantityMilli: Long? = null,
+        unit: String? = null,
     ): Expense
 
     suspend fun update(
@@ -43,6 +45,8 @@ interface ExpenseRepository {
         amountPaise: Long,
         date: LocalDate,
         category: String = Categories.UNCATEGORIZED,
+        quantityMilli: Long? = null,
+        unit: String? = null,
     )
 
     suspend fun delete(id: Long)
@@ -68,4 +72,7 @@ interface SettingsRepository {
 
     suspend fun setWeekStart(weekStart: WeekStart)
     suspend fun setTheme(theme: ThemeMode)
+
+    /** Null clears the budget. */
+    suspend fun setMonthlyBudget(paise: Long?)
 }

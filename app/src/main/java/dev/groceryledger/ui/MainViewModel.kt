@@ -34,7 +34,10 @@ import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.CategoryTotal
 import dev.groceryledger.domain.model.Expense
 import dev.groceryledger.domain.model.ItemSuggestion
+import dev.groceryledger.domain.model.QuantityUnit
+import dev.groceryledger.domain.model.Quantities
 import dev.groceryledger.domain.model.RecentItem
+import dev.groceryledger.domain.model.ShoppingItem
 import dev.groceryledger.domain.model.SpendingSummary
 import dev.groceryledger.domain.model.ThemeMode
 import dev.groceryledger.domain.model.WeekStart
@@ -42,6 +45,8 @@ import dev.groceryledger.domain.money.Money
 import dev.groceryledger.domain.money.MoneyParseResult
 import dev.groceryledger.domain.repository.ExpenseRepository
 import dev.groceryledger.domain.repository.SettingsRepository
+import dev.groceryledger.domain.repository.ShoppingListRepository
+import dev.groceryledger.domain.shopping.ShoppingListConverter
 import dev.groceryledger.domain.time.DateProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
@@ -74,6 +79,8 @@ import java.time.YearMonth
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class MainViewModel(
     private val repository: ExpenseRepository,
+    private val shoppingListRepository: ShoppingListRepository,
+    private val shoppingListConverter: ShoppingListConverter,
     private val settingsRepository: SettingsRepository,
     private val backupManager: CsvBackupManager,
     private val updateChecker: UpdateChecker,
@@ -92,6 +99,9 @@ class MainViewModel(
     private val _today = MutableStateFlow(initialToday)
     private val _selectedDate = MutableStateFlow(restoredDate ?: initialToday)
     private val _visibleMonth = MutableStateFlow(YearMonth.from(_selectedDate.value))
+    private val _categoryFilter = MutableStateFlow(
+        savedStateHandle.get<String>(KEY_CATEGORY_FILTER)?.takeIf { it.isNotBlank() },
+    )
     private val _isDaySheetOpen = MutableStateFlow(false)
     private val _editor = MutableStateFlow<EditorUiState?>(null)
     private val _priceHistoryTarget = MutableStateFlow(restoredPriceHistoryTarget())
@@ -159,30 +169,35 @@ class MainViewModel(
     val recentItems: StateFlow<List<RecentItem>> = repository.observeRecentItems()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    val shoppingItems: StateFlow<List<ShoppingItem>> = shoppingListRepository.observeItems()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     val calendarState: StateFlow<CalendarUiState> = combine(
         _visibleMonth,
         _selectedDate,
         _today,
         settings,
-    ) { month, selected, today, appSettings ->
-        CalendarKey(month, selected, today, appSettings.weekStart)
+        _categoryFilter,
+    ) { month, selected, today, appSettings, categoryFilter ->
+        CalendarKey(month, selected, today, appSettings.weekStart, categoryFilter)
     }
         .flatMapLatest { key ->
             val gridRange = DateRanges.monthGridRange(key.month, key.weekStart)
             val weekRange = DateRanges.weekRange(key.selectedDate, key.weekStart)
             val monthRange = DateRanges.monthRange(key.month)
             val dayRange = DateRange(key.selectedDate, key.selectedDate)
+            val filter = key.categoryFilter
             val monthTotals = combine(
-                repository.observeTotal(monthRange),
+                repository.observeTotal(monthRange, filter),
                 repository.observeCategoryTotals(monthRange),
             ) { total, categories -> total to categories }
 
             combine(
-                repository.observeDailyTotals(gridRange),
-                repository.observeTotal(weekRange),
+                repository.observeDailyTotals(gridRange, filter),
+                repository.observeTotal(weekRange, filter),
                 monthTotals,
-                repository.observeTotal(dayRange),
-                repository.observeEntries(key.selectedDate),
+                repository.observeTotal(dayRange, filter),
+                repository.observeEntries(key.selectedDate, filter),
             ) { dailyTotals, weekTotal, monthBreakdown, dayTotal, entries ->
                 val (monthTotal, categoryTotals) = monthBreakdown
                 val totalsByDate = dailyTotals.associateBy { it.date }
@@ -215,6 +230,7 @@ class MainViewModel(
                         itemCount = entries.size,
                     ),
                     categoryTotals = categoryTotals,
+                    categoryFilter = filter,
                 )
             }
         }
@@ -261,6 +277,26 @@ class MainViewModel(
         _isDaySheetOpen.value = true
     }
 
+    /** Null shows every category; a name (including Uncategorized) narrows the whole screen. */
+    fun setCategoryFilter(category: String?) {
+        val clean = category?.let { raw ->
+            val normalized = Categories.normalize(raw)
+            when {
+                normalized.isEmpty() -> null
+                normalized.equals(Categories.UNCATEGORIZED, ignoreCase = true) ->
+                    Categories.UNCATEGORIZED
+                normalized.length > Categories.MAX_NAME_LENGTH -> null
+                else -> normalized
+            }
+        }
+        _categoryFilter.value = clean
+        if (clean == null) {
+            savedStateHandle.remove<String>(KEY_CATEGORY_FILTER)
+        } else {
+            savedStateHandle[KEY_CATEGORY_FILTER] = clean
+        }
+    }
+
     fun closeDaySheet() {
         _isDaySheetOpen.value = false
     }
@@ -290,18 +326,24 @@ class MainViewModel(
         if (_editor.value != null) return
         _isDaySheetOpen.value = false
         val amountText = Money.formatEditable(expense.amountPaise)
+        val quantityText = expense.quantityMilli?.let { Quantities.format(it) }.orEmpty()
         _editor.value = EditorUiState(
             mode = EditorMode.EDIT,
             date = expense.date,
             name = expense.name,
             amountText = amountText,
             category = expense.category,
+            quantityText = quantityText,
+            unitId = expense.unit,
+            showQuantity = expense.quantityMilli != null,
             existing = expense,
             returnToDaySheet = returnToDaySheet,
             originalName = expense.name,
             originalAmountText = amountText,
             originalDate = expense.date,
             originalCategory = expense.category,
+            originalQuantityText = quantityText,
+            originalUnitId = expense.unit,
         )
     }
 
@@ -377,6 +419,50 @@ class MainViewModel(
         }
     }
 
+    fun updateQuantity(quantity: String) {
+        val filtered = quantity
+            .filter { it.isDigit() || it == '.' }
+            .take(10)
+        _editor.update { current ->
+            current?.copy(
+                quantityText = filtered,
+                quantityError = null,
+                showQuantity = true,
+            )
+        }
+    }
+
+    fun selectUnit(unitId: String) {
+        val unit = QuantityUnit.fromId(unitId) ?: return
+        _editor.update { current ->
+            current?.copy(
+                unitId = unit.id,
+                quantityError = null,
+                showQuantity = true,
+            )
+        }
+    }
+
+    fun showQuantityEditor() {
+        _editor.update { current ->
+            current?.copy(
+                showQuantity = true,
+                unitId = current.unitId ?: QuantityUnit.KILOGRAM.id,
+            )
+        }
+    }
+
+    fun clearQuantity() {
+        _editor.update { current ->
+            current?.copy(
+                quantityText = "",
+                unitId = null,
+                quantityError = null,
+                showQuantity = false,
+            )
+        }
+    }
+
     fun selectSuggestion(suggestion: ItemSuggestion) {
         _editor.update { current ->
             current?.copy(
@@ -438,7 +524,14 @@ class MainViewModel(
     fun renameCategory(oldName: String, newName: String) {
         viewModelScope.launch {
             val clean = Categories.sanitize(newName)
-            val renamed = clean != null && repository.renameCategory(oldName, clean)
+            if (clean == null) {
+                _events.emit(UiEvent(uiText(R.string.category_rename_failed)))
+                return@launch
+            }
+            val renamed = repository.renameCategory(oldName, clean)
+            if (renamed && _categoryFilter.value == oldName) {
+                setCategoryFilter(clean)
+            }
             _events.emit(
                 UiEvent(
                     uiText(
@@ -452,11 +545,65 @@ class MainViewModel(
     fun deleteCategory(name: String) {
         viewModelScope.launch {
             val deleted = repository.deleteCategory(name)
+            if (deleted && _categoryFilter.value == name) setCategoryFilter(null)
             _events.emit(
                 UiEvent(
                     uiText(
                         if (deleted) R.string.category_deleted else R.string.category_delete_failed,
                     ),
+                ),
+            )
+        }
+    }
+
+    fun addShoppingItem(name: String, amountText: String) {
+        val parsedAmount = if (amountText.isBlank()) {
+            null
+        } else {
+            (Money.parse(amountText) as? MoneyParseResult.Valid)?.paise
+        }
+        if (amountText.isNotBlank() && parsedAmount == null) {
+            _events.tryEmit(UiEvent(uiText(R.string.shopping_invalid_amount)))
+            return
+        }
+        viewModelScope.launch {
+            if (shoppingListRepository.add(name, parsedAmount) == null) {
+                _events.emit(UiEvent(uiText(R.string.shopping_invalid_name)))
+            }
+        }
+    }
+
+    fun toggleShoppingItem(item: ShoppingItem) {
+        viewModelScope.launch {
+            shoppingListRepository.setChecked(item.id, !item.isChecked)
+        }
+    }
+
+    fun deleteShoppingItem(id: Long) {
+        viewModelScope.launch { shoppingListRepository.delete(id) }
+    }
+
+    fun clearShoppingList() {
+        viewModelScope.launch {
+            shoppingListRepository.clear()
+            _events.emit(UiEvent(uiText(R.string.shopping_list_cleared)))
+        }
+    }
+
+    /**
+     * Turns checked list items that have an amount into entries on today's date, then removes
+     * those items. Amounts are required because every entry must be at least ₹1.
+     */
+    fun addCheckedShoppingItemsToToday() {
+        viewModelScope.launch {
+            val converted = shoppingListConverter.convertChecked(dateProvider.today())
+            if (converted == 0) {
+                _events.emit(UiEvent(uiText(R.string.shopping_nothing_to_add)))
+                return@launch
+            }
+            _events.emit(
+                UiEvent(
+                    uiPlural(R.plurals.shopping_added_entries, converted, converted),
                 ),
             )
         }
@@ -765,12 +912,19 @@ class MainViewModel(
         viewModelScope.launch { settingsRepository.setTheme(theme) }
     }
 
+    fun setMonthlyBudget(paise: Long?) {
+        viewModelScope.launch { settingsRepository.setMonthlyBudget(paise) }
+    }
+
     private fun saveInternal(addAnother: Boolean) {
         val current = _editor.value ?: return
         if (current.isSaving) return
 
         val validated = validate(current)
-        if (validated.nameError != null || validated.amountError != null) {
+        if (validated.nameError != null ||
+            validated.amountError != null ||
+            validated.quantityError != null
+        ) {
             _editor.value = validated
             return
         }
@@ -779,6 +933,16 @@ class MainViewModel(
             is MoneyParseResult.Valid -> parsed.paise
             else -> return
         }
+        val quantityMilli = if (validated.quantityText.isBlank()) {
+            null
+        } else {
+            Quantities.parse(validated.quantityText)
+        }
+        val unit = if (quantityMilli == null) {
+            null
+        } else {
+            (QuantityUnit.fromId(validated.unitId) ?: QuantityUnit.KILOGRAM).id
+        }
         val name = validated.name.trim()
         val date = validated.date
 
@@ -786,13 +950,22 @@ class MainViewModel(
         viewModelScope.launch {
             try {
                 when (validated.mode) {
-                    EditorMode.ADD -> repository.add(name, amount, date, validated.category)
+                    EditorMode.ADD -> repository.add(
+                        name = name,
+                        amountPaise = amount,
+                        date = date,
+                        category = validated.category,
+                        quantityMilli = quantityMilli,
+                        unit = unit,
+                    )
                     EditorMode.EDIT -> repository.update(
                         id = requireNotNull(validated.existing).id,
                         name = name,
                         amountPaise = amount,
                         date = date,
                         category = validated.category,
+                        quantityMilli = quantityMilli,
+                        unit = unit,
                     )
                 }
 
@@ -832,10 +1005,16 @@ class MainViewModel(
             MoneyParseResult.TooLarge -> AmountError.TOO_LARGE
             is MoneyParseResult.Valid -> null
         }
+        val quantityError = when {
+            current.quantityText.isBlank() -> null
+            Quantities.parse(current.quantityText) == null -> QuantityError.INVALID
+            else -> null
+        }
         return current.copy(
             name = name,
             nameError = nameError,
             amountError = amountError,
+            quantityError = quantityError,
         )
     }
 
@@ -887,6 +1066,7 @@ class MainViewModel(
         val selectedDate: LocalDate,
         val today: LocalDate,
         val weekStart: WeekStart,
+        val categoryFilter: String?,
     )
 
     private data class PriceHistoryTarget(
@@ -916,6 +1096,7 @@ class MainViewModel(
 
     private companion object {
         const val KEY_SELECTED_DATE = "selected_date"
+        const val KEY_CATEGORY_FILTER = "category_filter"
         const val KEY_PRICE_HISTORY_NAME = "price_history_name"
         const val KEY_PRICE_HISTORY_RETURN_DAY = "price_history_return_day"
         const val SAVE_SETTLE_MS = 350L
@@ -943,6 +1124,8 @@ class MainViewModelFactory(
 
         return MainViewModel(
             repository = container.expenseRepository,
+            shoppingListRepository = container.shoppingListRepository,
+            shoppingListConverter = container.shoppingListConverter,
             settingsRepository = container.settingsRepository,
             backupManager = container.backupManager,
             updateChecker = container.updateChecker,

@@ -28,18 +28,28 @@ import dev.groceryledger.ui.calendar.CalendarScreen
 import dev.groceryledger.ui.entry.EntrySheet
 import dev.groceryledger.ui.history.PriceHistorySheet
 import dev.groceryledger.ui.settings.SettingsScreen
+import dev.groceryledger.ui.shopping.ShoppingListScreen
 import dev.groceryledger.ui.theme.GroceryLedgerTheme
 import kotlinx.coroutines.withTimeoutOrNull
 
 @Composable
-fun GroceryLedgerApp(container: AppContainer) {
+fun GroceryLedgerApp(
+    container: AppContainer,
+    quickAddRequest: Boolean = false,
+    onQuickAddHandled: () -> Unit = {},
+) {
     val viewModel: MainViewModel = viewModel(
         factory = remember(container) { MainViewModelFactory(container) },
     )
     val settings by viewModel.settings.collectAsStateWithLifecycle()
 
     GroceryLedgerTheme(themeMode = settings.theme) {
-        AppContent(viewModel = viewModel, settings = settings)
+        AppContent(
+            viewModel = viewModel,
+            settings = settings,
+            quickAddRequest = quickAddRequest,
+            onQuickAddHandled = onQuickAddHandled,
+        )
     }
 }
 
@@ -47,10 +57,13 @@ fun GroceryLedgerApp(container: AppContainer) {
 private fun AppContent(
     viewModel: MainViewModel,
     settings: dev.groceryledger.domain.model.AppSettings,
+    quickAddRequest: Boolean,
+    onQuickAddHandled: () -> Unit,
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     var showSettings by rememberSaveable { mutableStateOf(false) }
+    var showShoppingList by rememberSaveable { mutableStateOf(false) }
 
     val calendarState by viewModel.calendarState.collectAsStateWithLifecycle()
     val isDaySheetOpen by viewModel.isDaySheetOpen.collectAsStateWithLifecycle()
@@ -63,6 +76,7 @@ private fun AppContent(
     val isImportBusy by viewModel.isImportBusy.collectAsStateWithLifecycle()
     val updateState by viewModel.updateState.collectAsStateWithLifecycle()
     val priceHistory by viewModel.priceHistory.collectAsStateWithLifecycle()
+    val shoppingItems by viewModel.shoppingItems.collectAsStateWithLifecycle()
 
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
@@ -73,6 +87,17 @@ private fun AppContent(
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    LaunchedEffect(quickAddRequest) {
+        if (quickAddRequest) {
+            // The widget can arrive while Settings, the shopping list or history is open.
+            showSettings = false
+            showShoppingList = false
+            viewModel.closePriceHistory()
+            viewModel.openAdd()
+            onQuickAddHandled()
+        }
     }
 
     LaunchedEffect(viewModel, snackbarHostState) {
@@ -107,6 +132,10 @@ private fun AppContent(
         showSettings = false
     }
 
+    BackHandler(enabled = showShoppingList) {
+        showShoppingList = false
+    }
+
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background,
@@ -125,6 +154,7 @@ private fun AppContent(
                 onBack = { showSettings = false },
                 onWeekStartChange = viewModel::setWeekStart,
                 onThemeChange = viewModel::setTheme,
+                onBudgetChange = viewModel::setMonthlyBudget,
                 onRenameCategory = viewModel::renameCategory,
                 onDeleteCategory = viewModel::deleteCategory,
                 onExport = viewModel::exportTo,
@@ -145,6 +175,17 @@ private fun AppContent(
                 onDismiss = viewModel::closePriceHistory,
                 onEditEntry = viewModel::editFromPriceHistory,
             )
+        } else if (showShoppingList) {
+            ShoppingListScreen(
+                items = shoppingItems,
+                snackbarHostState = snackbarHostState,
+                onBack = { showShoppingList = false },
+                onAdd = viewModel::addShoppingItem,
+                onToggle = viewModel::toggleShoppingItem,
+                onDelete = viewModel::deleteShoppingItem,
+                onAddChecked = viewModel::addCheckedShoppingItemsToToday,
+                onClear = viewModel::clearShoppingList,
+            )
         } else {
             CalendarScreen(
                 state = calendarState,
@@ -156,12 +197,16 @@ private fun AppContent(
                 onSelectDate = viewModel::selectDate,
                 onAdd = { viewModel.openAdd(returnToDaySheet = false) },
                 onOpenSettings = { showSettings = true },
+                onOpenShoppingList = { showShoppingList = true },
                 onCloseDaySheet = viewModel::closeDaySheet,
                 onAddFromDay = { viewModel.openAdd(returnToDaySheet = true) },
                 onEditEntry = { entry ->
                     viewModel.openEdit(entry, returnToDaySheet = true)
                 },
                 onHistoryEntry = viewModel::openPriceHistory,
+                categories = categories,
+                monthlyBudgetPaise = settings.monthlyBudgetPaise,
+                onCategoryFilterChange = viewModel::setCategoryFilter,
                 entrySheet = {
                     editor?.let { current ->
                         EntrySheet(
@@ -173,6 +218,10 @@ private fun AppContent(
                             onDismiss = viewModel::closeEditor,
                             onNameChange = viewModel::updateName,
                             onAmountChange = viewModel::updateAmount,
+                            onQuantityChange = viewModel::updateQuantity,
+                            onUnitSelected = viewModel::selectUnit,
+                            onShowQuantity = viewModel::showQuantityEditor,
+                            onClearQuantity = viewModel::clearQuantity,
                             onDateChange = viewModel::updateDate,
                             onCategoryChange = viewModel::updateCategory,
                             onAddCategory = viewModel::addCategory,

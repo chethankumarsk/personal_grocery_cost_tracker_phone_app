@@ -1,22 +1,22 @@
 # Grocery Cost Tracker — Requirements
 
-- **Version:** 1.0 (price history)
+- **Version:** 1.3 (shopping list and widget)
 - **Date:** 3 November 2026
-- **Status:** v1 + categories + category management + monthly category totals + recent-item chips + per-item price history + manual check/in-app update implemented; physical-device QA pending
+- **Status:** v1 + categories + category filter + monthly category totals + recent-item chips + per-item price history + monthly budget + unit price + shopping list + home-screen widget + manual check/in-app update implemented; physical-device QA pending
 - **App name:** Grocery Ledger
 - **Platform:** Android, single user, offline-first, INR
 
 ## 0. Implementation status (30 October 2026)
 
 - v1, categories, category management, monthly category totals, and both update paths are implemented in Kotlin + Jetpack Compose with Room and DataStore.
-- JVM test suite: 60 tests covering domain logic, CSV, Room repository behavior, category management/totals, update parsing/versioning, APK download verification, entry-sheet state, activity launch, settings, and add-entry/calendar UI flows.
+- JVM test suite: 109 tests covering domain logic, CSV v1–v3, Room repository behavior, category management/totals/filtering, recent-item chips, price history, budget, unit prices, update parsing/versioning, APK download verification, entry-sheet state, activity launch, settings, and add-entry/calendar UI flows.
 - Instrumentation tests (5): v1→v2 migration preserves entries, defaults them to Uncategorized, and seeds presets; the APK verifier accepts a correctly signed newer build and rejects same-version, wrong-package, and non-APK files.
 - Debug and signed release APKs build; `lintDebug` reports no errors.
-- Release package: `dev.groceryledger`; version 1.4.0 / versionCode 10; minSdk 26, compile/target SDK 36.
+- Release package: `dev.groceryledger`; version 1.5.0 / versionCode 11; minSdk 26, compile/target SDK 36.
 - Release keystore created outside the repository; the first real install should use the signed release APK.
 - Network is used only for the user-initiated GitHub Releases check and the update APK download the user explicitly starts.
 - LLM/developer context: `AGENTS.md`, `docs/KNOWLEDGE_GRAPH.md`, and the machine-readable `docs/knowledge-graph.json`.
-- GitHub release **v1.3.2** is the latest published release; the update checker resolves it. Publishing `v1.4.0` exercises the in-app update path from 1.3.2.
+- GitHub release **v1.4.0** is the latest published release; the update checker resolves it. Publishing `v1.5.0` exercises the in-app update path from 1.4.0.
 - Remaining: manual visual/performance QA on a physical Android phone and an end-to-end in-app update test against a published newer release.
 
 ---
@@ -173,9 +173,9 @@ With Sunday week start, the week containing 29 Oct is 25–31 Oct and totals ₹
 - **DAT-1 (Must):** Entries persist locally across app restarts and updates. Data is never auto-deleted or expired.
 - **DAT-2 (Must):** Android Auto Backup is enabled so data can be restored when migrating devices. It is a system-level feature and may upload app data to the user's Google account if system backup is enabled; this is disclosed in About. It is best-effort and does not replace the CSV backup.
 - **DAT-3 (Must):** An entry write and its suggestion-catalog update happen in one database transaction; a crash cannot leave them inconsistent.
-- **DAT-4 (Must):** CSV export format: RFC 4180 compliant, UTF-8 with BOM for Excel compatibility, columns `format_version,entry_uid,date,item,amount_inr,category`, dates as `yyyy-MM-dd`, amounts always with two decimals, sorted by date then creation order. `format_version` is `2` for this release. Filename `grocery-spending-YYYY-MM-DD.csv`. Future fields are added as new columns with a version bump; existing columns never change meaning.
+- **DAT-4 (Must):** CSV export format: RFC 4180 compliant, UTF-8 with BOM for Excel compatibility, columns `format_version,entry_uid,date,item,amount_inr,category,quantity,unit`, dates as `yyyy-MM-dd`, amounts always with two decimals, sorted by date then creation order. `format_version` is `3` for this release. Filename `grocery-spending-YYYY-MM-DD.csv`. Future fields are added as new columns with a version bump; existing columns never change meaning.
 - **DAT-5 (Must):** The display name of an item in suggestions follows the most recent entry's spelling (latest expense date, then creation time).
-- **DAT-6 (Must):** CSV import reads a file through the system file picker. The header is required and columns may be in any order; `format_version` must be an integer the app supports (currently `1`) and each row's `entry_uid` must be a valid UUID. A file with a newer `format_version` is rejected with an "update the app first" message instead of importing a partial file. Unknown extra columns are ignored. Unreadable files or files missing required columns are rejected before anything is written; individual bad rows are handled per DAT-8.
+- **DAT-6 (Must):** CSV import reads a file through the system file picker. The header is required and columns may be in any order; `format_version` must be an integer the app supports (currently `1`, `2`, `3`) and each row's `entry_uid` must be a valid UUID. A file with a newer `format_version` is rejected with an "update the app first" message instead of importing a partial file. Unknown extra columns are ignored. Unreadable files or files missing required columns are rejected before anything is written; individual bad rows are handled per DAT-8.
 - **DAT-7 (Must):** Import merges by `entry_uid`: rows whose UID already exists (in the app or earlier in the file) are skipped as duplicates. Existing entries are never overwritten or deleted by an import. CSV import is for backup/restore, not bulk editing: changing a row without changing its UID means the change is not applied.
 - **DAT-8 (Must):** Before writing, show a preview: number of new entries, duplicates skipped, and invalid rows. A row is invalid if its UID is not a UUID, its date is malformed or in the future, its name is blank or over 80 characters, or its amount is not a valid value within the entry limits. Valid rows are imported in one transaction; invalid rows are reported with line numbers and reasons, and the rest still import. Totals and suggestions refresh afterwards.
 - **DAT-9 (Must):** Importing an export into an empty app fully restores the entries and suggestion history, with the same day/week/month totals.
@@ -199,11 +199,11 @@ With Sunday week start, the week containing 29 Oct is 25–31 Oct and totals ₹
 - **CAT-2 (Must):** A preset list is seeded on first run: Vegetables & Fruits, Dairy & Eggs, Grains & Pulses, Snacks & Beverages, Household, Personal Care, Other.
 - **CAT-3 (Must):** New categories can be added from the entry editor; names are trimmed, whitespace-collapsed, case-insensitively unique, at most 40 characters, and cannot be "Uncategorized".
 - **CAT-4 (Must):** The day sheet shows the category under the item name, hidden for Uncategorized.
-- **CAT-5 (Must):** CSV `format_version` 2 adds a `category` column. v1 files still import and their rows become Uncategorized. Older app versions reject v2 files.
+- **CAT-5 (Must):** CSV `format_version` 2 adds a `category` column. v1 files still import and their rows become Uncategorized. Older app versions reject v2+ files.
 - **CAT-6 (Must):** Schema v2 is additive: an `ALTER TABLE` with a default plus a new `categories` table, seeded by the migration. No entries are lost.
 - **CAT-7 (Must):** Settings lists every category except the virtual `Uncategorized` one. A category can be renamed; the new name follows the same validation as adding and all entries using it are updated. A category can be deleted after confirmation; its entries move to `Uncategorized`. `Uncategorized` cannot be renamed or deleted.
 - **CAT-8 (Must):** A collapsible **By category** card under the Day/Week/Month summary lists every category with its total and item count for the selected month. `Uncategorized` is included and labelled consistently; categories are ordered by spend, highest first.
-- **CAT-9 (Should, deferred):** Filtering the day/week/month summary and day sheet to a single category.
+- **CAT-9 (Should):** Filtering the day/week/month summary and day sheet to a single category. The summary, calendar day totals and day sheet all follow the selected filter; `Uncategorized` can be filtered like any other category.
 
 ### 5.10 Price history
 
@@ -214,6 +214,35 @@ With Sunday week start, the week containing 29 Oct is 25–31 Oct and totals ₹
 - **PRICE-5 (Must):** A single purchase shows that purchase plus an explanation that there is nothing to compare yet. No chart is drawn.
 - **PRICE-6 (Must):** Tapping a purchase opens that entry in the editor. Editing or deleting entries refreshes the history immediately.
 - **PRICE-7 (Must):** History is matched by normalized item name (case and whitespace insensitive), uses the existing `expenses(name_normalized)` index, and caps at the latest 500 purchases with a visible note when truncated.
+
+### 5.11 Monthly budget
+
+- **BUD-1 (Must):** An optional monthly budget can be set or cleared in Settings. It is a device setting stored in DataStore, not an entry and not part of CSV backups.
+- **BUD-2 (Must):** When a budget is set and no category filter is active, the calendar shows the month's spend against the budget with a progress bar, remaining amount, and an over-budget amount in the error colour.
+- **BUD-3 (Must):** Budget maths is pure Kotlin over integer paise; the progress fraction is the only derived value and is clamped to 0..1 for display.
+- **BUD-4 (Must):** Budgets are not exported or imported; the CSV format is unchanged by this feature. Clearing the budget hides the card immediately.
+
+### 5.12 Unit price
+
+- **UNIT-1 (Must):** An entry optionally records a quantity and a unit from kg, g, L, ml, or piece. The amount remains the total price paid.
+- **UNIT-2 (Must):** Quantities are stored as integer thousandths of the chosen unit; up to three decimals are accepted and the quantity must be greater than zero.
+- **UNIT-3 (Must):** A normalized unit price is derived for display: per kg for weight, per L for volume, per piece for count. It is rounded half up to the nearest paise and never stored.
+- **UNIT-4 (Must):** The editor shows a live unit-price preview when amount, quantity, and unit are valid, and both the day sheet and price history show the derived unit price.
+- **UNIT-5 (Must):** Schema v3 adds nullable `quantity_milli` and `unit` columns with an additive migration and a migration test. Existing entries keep no quantity.
+- **UNIT-6 (Must):** CSV `format_version` 3 adds `quantity` and `unit`. v1/v2 files still import with no quantity; invalid quantity or unit values are reported per row and the rest still import.
+
+### 5.13 Shopping list
+
+- **SHOP-1 (Must):** A shopping list screen holds scratch items with an optional amount. It is stored on the device only and is never written to CSV.
+- **SHOP-2 (Must):** Items can be added, checked, unchecked, deleted, and cleared. Checked items sort after unchecked ones.
+- **SHOP-3 (Must):** **Add checked to today** creates one entry per checked item that has an amount, on today's date, then removes those items. Items without an amount stay on the list.
+- **SHOP-4 (Must):** The screen is reachable from the calendar's top bar and behaves with Back the same as the other full-screen screens.
+
+### 5.14 Home-screen widget
+
+- **WIDGET-1 (Must):** A home-screen widget shows today's total and an **Add item** action.
+- **WIDGET-2 (Must):** Tapping the widget opens the app directly in the add-entry form; it never writes an entry by itself.
+- **WIDGET-3 (Must):** The widget refreshes when the app is left and periodically, and shows `Today ₹0` before the first refresh.
 
 ## 6. Data model
 
@@ -231,6 +260,21 @@ Amounts are stored as 64-bit integer paise. Dates are stored as epoch days (`Loc
 | `expense_date` | INTEGER | Epoch day |
 | `created_at` | INTEGER | Epoch millis |
 | `updated_at` | INTEGER | Epoch millis |
+| `category` | TEXT | Category name; never null, defaults to `Uncategorized` |
+| `quantity_milli` | INTEGER NULL | Thousandths of `unit`; null when no quantity was recorded |
+| `unit` | TEXT NULL | `kg`, `g`, `L`, `ml`, `piece`; null when no quantity |
+
+### `shopping_items`
+
+Device-only scratch list; not exported.
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `id` | INTEGER PK | Auto-increment |
+| `name` | TEXT | Trimmed, 1–80 chars |
+| `amount_paise` | INTEGER NULL | Optional planned/actual price |
+| `is_checked` | INTEGER | 0/1; checked items are converted to entries |
+| `created_at` | INTEGER | Epoch millis, used for stable ordering |
 
 Indexes: `expense_date`, `name_normalized`.
 
@@ -250,7 +294,7 @@ Maintained transactionally for fast, ranked suggestions and price memory.
 
 ### Settings
 
-Stored in DataStore Preferences: `week_start` (MONDAY/SUNDAY), `theme` (SYSTEM/LIGHT/DARK).
+Stored in DataStore Preferences: `week_start` (MONDAY/SUNDAY), `theme` (SYSTEM/LIGHT/DARK), and an optional `monthly_budget_paise`.
 
 ### Derived values
 
@@ -349,7 +393,7 @@ Calendar (home)
 | S11 | Open a day with no entries | "No items on this day" empty state; totals ₹0 |
 | S12 | Navigate to a future month | Next arrow is disabled; no future date can be added |
 | S13 | Rotate the device with the add sheet open | Draft input and selected date survive |
-| S14 | Export CSV | Valid CSV with `format_version,entry_uid,date,item,amount_inr,category` header and all entries; amounts with 2 decimals |
+| S14 | Export CSV | Valid CSV with `format_version,entry_uid,date,item,amount_inr,category,quantity,unit` header and all entries; amounts with 2 decimals |
 | S15 | Enable 200% font size | Calendar and summary remain readable without clipped totals |
 | S16 | 20,000 entries, type 2 letters | Suggestions in under 150 ms; scrolling stays smooth |
 | S17 | Delete all data, then import the export taken beforehand | All entries, totals, and suggestions restored; no duplicates |
@@ -358,7 +402,7 @@ Calendar (home)
 | S20 | Import a file while entries already exist | New entries merge in; existing entries are untouched |
 | S21 | Import a file with a newer `format_version` | Rejected with an "update the app" message; no data changes |
 | S22 | Tap Check for updates when the latest release is `v1.0.0` and the app is 1.0.0 | "You're up to date" dialog; no install action |
-| S23 | Tap Check for updates when `v1.4.0` is published and the app is 1.3.2 | Update dialog shows 1.4.0 and notes; Download and install verifies and opens Android's installer, and Open release page opens the browser |
+| S23 | Tap Check for updates when `v1.5.0` is published and the app is 1.4.0 | Update dialog shows 1.5.0 and notes; Download and install verifies and opens Android's installer, and Open release page opens the browser |
 | S24 | Tap Check for updates when the repository has no releases | Friendly "No releases yet" dialog |
 | S25 | Tap Check for updates while offline or rate-limited | Friendly failure message with retry/close; no crash |
 | S26 | Open Settings without tapping Check for updates | No network request is made |
@@ -374,7 +418,7 @@ Calendar (home)
 - **A3:** Week and month totals are calendar periods of the selected date, not rolling 7/30-day windows.
 - **A4:** Weeks are Monday–Sunday by default; Sunday–Saturday is available in settings.
 - **A5:** Currency is INR only, with Indian digit grouping.
-- **A6:** v1 records name, amount, and date; categories were added in 1.2.0. There is still no quantity, unit, store, or notes field.
+- **A6:** v1 records name, amount, and date; categories were added in 1.2.0 and optional quantity/unit in 1.5.0. There is still no store or notes field.
 - **A7:** Future-dated entries are not allowed.
 - **A8:** Advertising, accounts, app servers, analytics, and cloud sync are out of scope permanently. The manual GitHub Releases update check and the update download the user starts are the only network features; Android's optional device backup is the only off-device data copy and is disclosed.
 - **A9:** Primary use is a phone in portrait; tablets are supported but not optimized separately.
@@ -384,7 +428,7 @@ Calendar (home)
 - **A13:** The app never deletes data on its own. Only an explicit user action or clearing/uninstalling the app removes the local copy; Android system backup, if enabled, is best-effort and may restore it.
 - **A14:** The app stays a single Gradle module for v1; package boundaries provide the seams for future growth.
 - **A15:** `applicationId` and the final release signing key are fixed before the first build installed for real use; changing either breaks in-place updates.
-- **A16:** The CSV `format_version` is 2 (category added) and only increments when columns or their meaning change.
+- **A16:** The CSV `format_version` is 3 (category plus quantity/unit) and only increments when columns or their meaning change.
 - **A17:** Updates are distributed as GitHub Releases with a signed APK and a `vX.Y.Z` tag. The app offers an in-app download/install path and retains the release page as the manual browser fallback.
 - **A18:** Automatic update checks remain deferred until a separate privacy/UX decision. Manual in-app installation is implemented (ADR 0003).
 
@@ -398,7 +442,7 @@ Calendar (home)
 | Implementation stack | Kotlin + Jetpack Compose |
 | Entry structure | One flat entry per item (no trips) |
 | Week definition | Monday–Sunday calendar week for the selected date; calendar month. Sunday start remains a setting. |
-| Optional fields | Category is optional and defaults to `Uncategorized`; name, amount, and date are required |
+| Optional fields | Category, quantity and unit are optional; `Uncategorized` is the default category, and name, amount, and date are required |
 | Backup and restore | CSV export and import. UID-based, idempotent merge; data persists until the user explicitly clears it. |
 | Update strategy | Single module with layered/package seams; additive Room migrations with tests; versioned CSV; stable `applicationId` and signing key; one-command build/test. |
 | Signing | 4096-bit RSA release key created before the first real install; keystore and credentials stored outside the repository |
@@ -411,8 +455,8 @@ Calendar (home)
 | Item | Status |
 | --- | --- |
 | Physical-device visual and performance QA | Pending |
-| Publish the first GitHub release (`v1.1.0` or later) | Done - `v1.3.1` is the latest published release with signed APK |
-| End-to-end in-app update against a published newer release | Pending: `v1.4.0` is published; verify the 1.3.2 → 1.4.0 upgrade on a device |
+| Publish the first GitHub release (`v1.1.0` or later) | Done - `v1.5.0` is the latest published release with signed APK |
+| End-to-end in-app update against a published newer release | Pending: `v1.5.0` is published; verify the 1.4.0 → 1.5.0 upgrade on a device |
 | Optional Play Store publication | Not planned for v1 |
 
 ## 14. Recommended future enhancements
@@ -420,14 +464,12 @@ Calendar (home)
 These are intentionally excluded from v1 but worth designing for:
 
 1. **Category and monthly breakdown** — where the money went, not just how much.
-2. **Monthly budget and progress** — a single target with a simple bar, no complex envelopes.
-3. **Home-screen widget / quick-add shortcut** — log a purchase in two taps.
-4. **Shopping-list mode** — check items off while shopping, then convert the list into entries.
-5. **CSV bulk editing / replace-all restore** — apply changes to existing entries by UID, or wipe and restore exactly. v1 import is merge-only for safety.
-6. **Unit-price tracking** — optional quantity + unit (e.g. 1 kg, 500 ml) so ₹/kg can be compared across purchases.
-7. **Receipt photo attachment** — optional image per day or trip, stored locally.
-8. **Weekly/monthly summary notification** — a local-only recap, if ever wanted.
-9. **Optional automatic update check** — a daily check with a non-blocking notification; v1 is manual-only to keep the network policy explicit.
+2. **Home-screen widget / quick-add shortcut** — log a purchase in two taps.
+3. **Shopping-list mode** — check items off while shopping, then convert the list into entries.
+4. **CSV bulk editing / replace-all restore** — apply changes to existing entries by UID, or wipe and restore exactly. v1 import is merge-only for safety.
+5. **Receipt photo attachment** — optional image per day or trip, stored locally.
+6. **Weekly/monthly summary notification** — a local-only recap, if ever wanted.
+7. **Optional automatic update check** — a daily check with a non-blocking notification; v1 is manual-only to keep the network policy explicit.
 
 ## 15. Maintainability and future updates
 
@@ -473,8 +515,9 @@ These are intentionally excluded from v1 but worth designing for:
 | --- | --- |
 | Per-item price history (done) | Entries already store item, amount, and date; history is one indexed query plus a pure stats calculator. |
 | Categories | Add an optional field/table; totals stay amount sums; filtering is additive. |
-| Monthly budget | Reads the existing month total; separate settings/table; no entry changes. |
+| Monthly budget (done) | Reads the existing month total; settings only, no schema change. |
 | Quick-add chips (done) | Reuses the suggestion repository and add sheet; no schema change. |
+| Unit price (done) | Optional quantity/unit columns on entries and CSV v3; amount stays authoritative. |
 | Home-screen widget | Reads through a repository/use case; does not touch calendar UI. |
 | New CSV fields | Version bump; older app versions reject safely; mapper localized. |
 | Automatic update check | `GitHubUpdateChecker` is isolated; add a setting and a non-blocking notification without touching core data. |
@@ -493,7 +536,7 @@ When adding a feature or field:
 ## 16. Definition of done (v1)
 
 - All **Must** requirements implemented and verified where device testing is not required.
-- Unit, database, CSV, update, download-verification, and UI tests pass (60 tests); totals, week/month boundaries, suggestion ranking, import dedupe, CSV versioning, category rename/delete, monthly category totals, update parsing/version comparison, APK checksum/size handling, entry-sheet state, and the UI smoke flows are covered.
+- Unit, database, CSV, update, download-verification, and UI tests pass (109 tests); totals, week/month boundaries, suggestion ranking, import dedupe, CSV versioning, category rename/delete/filtering, monthly category totals, recent-item chips, price history, budget, unit prices, update parsing/version comparison, APK checksum/size handling, entry-sheet state, and the UI smoke flows are covered.
 - `gradlew build` succeeds and Android Lint reports no errors.
 - Room schema JSON is checked in and the v1→v2 migration instrumentation test passes.
 - UI code imports no Room entities; totals/date/formatting logic is unit-tested and independent of Android.
@@ -532,8 +575,12 @@ When adding a feature or field:
 | UPD-1..UPD-5, UPD-7..UPD-9 | Done | Manual GitHub Releases check, semver comparison, notes + Download and install + browser fallback, checksum/package/version/signature verification, friendly failures, release policy, scoped permissions. |
 | UPD-6 | Deferred | Optional automatic daily check; checks remain manual-only. |
 | CAT-1..CAT-8 | Done | Category column + `categories` table (schema v2), presets, editor chips with "+ New category", day-sheet label, CSV v2 with v1 import, Settings rename/delete with entry reassignment, monthly category totals card. |
-| CAT-9 | Deferred | Category filtering of the summary and day sheet. |
+| CAT-9 | Done | Filter chips under the summary narrow day/week/month totals, calendar day totals and the day sheet to one category; rename/delete keeps the filter valid. |
 | PRICE-1..PRICE-7 | Done | Item history sheet with latest/previous price, amount + percent change, average/low/high/count, trend chart, purchase list and tap-to-edit; name-normalized query, 500-point cap. |
+| BUD-1..BUD-4 | Done | Optional DataStore budget, Settings set/change/clear, progress card with remaining/over amount, pure `BudgetProgress` tests. |
+| UNIT-1..UNIT-6 | Done | Optional quantity + unit on entries (schema v3), normalized ₹/kg, ₹/L, ₹/piece preview and display, CSV v3 with v1/v2 import, migration test. |
+| SHOP-1..SHOP-4 | Done | Device-only shopping list (schema v4) with add/check/delete/clear and conversion of checked priced items into today's entries. |
+| WIDGET-1..WIDGET-3 | Done | Home-screen widget with today's total and a quick-add action; refreshes on app pause and every 30 minutes. |
 
 ### 17.2 Non-functional requirements
 
@@ -547,7 +594,7 @@ When adding a feature or field:
 | NFR-6 | Done | minSdk 26; compile/target SDK 36. |
 | NFR-7 | Done | No analytics/ads/servers; manual GitHub check plus user-started APK download; backup disclosed. |
 | NFR-8 | Partial | Selected date survives process death; editor draft survives configuration changes but not process death. |
-| NFR-9 | Done | 81 JVM tests across money, dates, ranking, CSV, Room, category management/totals, recent-item chips, price history, update/download logic, entry-sheet state, and Compose UI smoke flows. |
+| NFR-9 | Done | 109 JVM tests across money, dates, ranking, CSV v1-v3, Room, category filter/totals, recent-item chips, price history, budget, unit prices, shopping list, widget, update/download logic, entry-sheet state, and Compose UI smoke flows. |
 | NFR-10 | Done | Release APK ~8 MB; debug under 20 MB. |
 | NFR-11 | Done | Migration policy and exported schemas in place; v2 migration and its instrumentation test pass. |
 
@@ -628,5 +675,5 @@ Build verification: `testDebugUnitTest` passes, `lintDebug` reports 0 errors, an
 ### 17.6 Remaining work
 
 1. Manual device QA: visual layout, TalkBack, 200% font, performance, install-over-update, and the in-app permission/installer dialogs.
-2. ~~Publish the first GitHub release with the signed APK~~ - done: `v1.4.0` is the latest published release. Next: verify the 1.3.2 → 1.4.0 upgrade with **Download and install**.
+2. ~~Publish the first GitHub release with the signed APK~~ - done: `v1.5.0` is the latest published release. Next: verify the 1.4.0 → 1.5.0 upgrade with **Download and install**.
 3. Optional: automatic update checks, spend-intensity shading.

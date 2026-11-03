@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.5.0 — 3 November 2026
+
+- **Category filter.** Chips under the Day/Week/Month summary narrow the totals, the calendar day amounts and the day sheet to one category, including `Uncategorized`. Renaming or deleting the active category keeps the filter valid.
+- **Monthly budget.** Settings gains an optional budget; the calendar shows a progress card with spend, remaining, and an over-budget amount. It is a device setting and is not part of CSV backups.
+- **Unit price.** Entries can record an optional quantity and unit (kg, g, L, ml, piece). The editor previews ₹/kg, ₹/L or ₹/piece, and the day sheet and price history show it. Quantities use thousandths, so no floating point enters the data.
+- Database schema v3 adds nullable `quantity_milli` and `unit` columns with an additive migration; existing entries keep no quantity.
+- Database schema v4 adds a device-only `shopping_items` table (additive migration). The shopping list is never part of CSV backups.
+- CSV `format_version` is now 3 with `quantity` and `unit` columns. v1/v2 backups still import; invalid quantity/unit rows are reported individually. Backups from this version cannot be read by older app versions.
+- **Shopping list.** A new top-bar screen holds items to buy with optional amounts; check them off and **Add checked to today** creates entries and removes those items. It is device-only and not exported.
+- **Home-screen widget.** Shows today's total and opens the add form in one tap; it refreshes when the app is left and every 30 minutes.
+- Adds unit tests for the shopping list, its conversion and the widget layout, plus Compose coverage for the list screen (109 JVM tests total).
+
 ## 1.4.0 — 3 November 2026
 
 - **Per-item price history.** Tap the history icon on a day-sheet row, or **Price history** while editing an entry, to see every recorded purchase of that item.

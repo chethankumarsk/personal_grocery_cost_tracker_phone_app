@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,12 +27,15 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -43,6 +47,7 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -51,6 +56,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -63,6 +69,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.groceryledger.R
 import dev.groceryledger.domain.date.DateRanges
+import dev.groceryledger.domain.budget.BudgetProgress
 import dev.groceryledger.domain.money.Money
 import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.CategoryTotal
@@ -84,10 +91,14 @@ fun CalendarScreen(
     onSelectDate: (java.time.LocalDate) -> Unit,
     onAdd: () -> Unit,
     onOpenSettings: () -> Unit,
+    onOpenShoppingList: () -> Unit,
     onCloseDaySheet: () -> Unit,
     onAddFromDay: () -> Unit,
     onEditEntry: (dev.groceryledger.domain.model.Expense) -> Unit,
     onHistoryEntry: (dev.groceryledger.domain.model.Expense) -> Unit,
+    categories: List<String>,
+    monthlyBudgetPaise: Long?,
+    onCategoryFilterChange: (String?) -> Unit,
     entrySheet: @Composable () -> Unit,
 ) {
     Scaffold(
@@ -95,6 +106,12 @@ fun CalendarScreen(
             CenterAlignedTopAppBar(
                 title = { Text(stringResource(R.string.app_name)) },
                 actions = {
+                    IconButton(onClick = onOpenShoppingList) {
+                        Icon(
+                            imageVector = Icons.Default.ShoppingCart,
+                            contentDescription = stringResource(R.string.shopping_list),
+                        )
+                    }
                     IconButton(onClick = onOpenSettings) {
                         Icon(
                             imageVector = Icons.Default.Settings,
@@ -136,6 +153,24 @@ fun CalendarScreen(
                 weekRange = DateRanges.formatWeekRange(state.weekRange),
                 monthLabel = DateRanges.formatMonthTitle(state.visibleMonth),
                 modifier = Modifier.fillMaxWidth(),
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            if (monthlyBudgetPaise != null && state.categoryFilter == null) {
+                BudgetCard(
+                    spentPaise = state.summary.monthPaise,
+                    budgetPaise = monthlyBudgetPaise,
+                    monthLabel = DateRanges.formatMonthTitle(state.visibleMonth),
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+            }
+
+            CategoryFilterRow(
+                categories = categories,
+                selected = state.categoryFilter,
+                onSelect = onCategoryFilterChange,
             )
 
             Spacer(Modifier.height(8.dp))
@@ -283,6 +318,125 @@ private fun SummaryCard(
                     amountPaise = summary.monthPaise,
                     caption = monthLabel,
                     modifier = Modifier.weight(1f),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BudgetCard(
+    spentPaise: Long,
+    budgetPaise: Long,
+    monthLabel: String,
+    modifier: Modifier = Modifier,
+) {
+    val progress = BudgetProgress(spentPaise = spentPaise, budgetPaise = budgetPaise)
+
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.monthly_budget),
+                        style = MaterialTheme.typography.titleSmall,
+                    )
+                    Text(
+                        text = monthLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(top = 2.dp),
+                    )
+                }
+                Text(
+                    text = stringResource(
+                        R.string.budget_spent_of,
+                        Money.format(spentPaise),
+                        Money.format(budgetPaise),
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                )
+            }
+            LinearProgressIndicator(
+                progress = { progress.fraction },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                color = if (progress.isOverBudget) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.primary
+                },
+                trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.15f),
+            )
+            Text(
+                text = if (progress.isOverBudget) {
+                    stringResource(R.string.budget_over, Money.format(progress.overspendPaise))
+                } else {
+                    stringResource(R.string.budget_left, Money.format(progress.remainingPaise))
+                },
+                style = MaterialTheme.typography.labelSmall,
+                color = if (progress.isOverBudget) {
+                    MaterialTheme.colorScheme.error
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier.padding(top = 8.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun CategoryFilterRow(
+    categories: List<String>,
+    selected: String?,
+    onSelect: (String?) -> Unit,
+) {
+    val options = remember(categories) {
+        listOf(Categories.UNCATEGORIZED) + categories.filter { it != Categories.UNCATEGORIZED }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = stringResource(R.string.filter_by_category),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState())
+                .padding(top = 2.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            FilterChip(
+                selected = selected == null,
+                onClick = { onSelect(null) },
+                label = { Text(stringResource(R.string.filter_all)) },
+                modifier = Modifier.testTag("filter_all"),
+            )
+            options.forEach { category ->
+                FilterChip(
+                    selected = selected == category,
+                    onClick = { onSelect(category) },
+                    label = {
+                        Text(
+                            if (category == Categories.UNCATEGORIZED) {
+                                stringResource(R.string.category_uncategorized)
+                            } else {
+                                category
+                            },
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    },
+                    modifier = Modifier.testTag("filter_category"),
                 )
             }
         }

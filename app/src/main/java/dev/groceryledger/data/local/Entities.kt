@@ -32,6 +32,10 @@ data class ExpenseEntity(
     val updatedAt: Long,
     @ColumnInfo(name = "category", defaultValue = "Uncategorized")
     val category: String = Categories.UNCATEGORIZED,
+    @ColumnInfo(name = "quantity_milli")
+    val quantityMilli: Long? = null,
+    @ColumnInfo(name = "unit")
+    val unit: String? = null,
 )
 
 /**
@@ -99,4 +103,18 @@ data class RecentItemRow(
     val lastPricePaise: Long,
     @ColumnInfo(name = "category")
     val category: String,
+)
+
+/** An item on the shopping list; [amountPaise] is optional until it is turned into an entry. */
+@Entity(tableName = "shopping_items", indices = [Index(value = ["created_at"])])
+data class ShoppingItemEntity(
+    @PrimaryKey(autoGenerate = true)
+    val id: Long = 0,
+    val name: String,
+    @ColumnInfo(name = "amount_paise")
+    val amountPaise: Long? = null,
+    @ColumnInfo(name = "is_checked")
+    val isChecked: Boolean = false,
+    @ColumnInfo(name = "created_at")
+    val createdAt: Long,
 )

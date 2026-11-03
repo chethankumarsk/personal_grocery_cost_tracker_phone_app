@@ -68,8 +68,12 @@ import dev.groceryledger.R
 import dev.groceryledger.domain.date.DateRanges
 import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.ItemSuggestion
+import dev.groceryledger.domain.model.QuantityUnit
+import dev.groceryledger.domain.model.Quantities
 import dev.groceryledger.domain.model.RecentItem
+import dev.groceryledger.domain.model.UnitPrices
 import dev.groceryledger.domain.money.Money
+import dev.groceryledger.domain.money.MoneyParseResult
 import dev.groceryledger.ui.AmountError
 import dev.groceryledger.ui.EditorMode
 import dev.groceryledger.ui.EditorUiState
@@ -87,6 +91,10 @@ fun EntrySheet(
     onDismiss: () -> Unit,
     onNameChange: (String) -> Unit,
     onAmountChange: (String) -> Unit,
+    onQuantityChange: (String) -> Unit,
+    onUnitSelected: (String) -> Unit,
+    onShowQuantity: () -> Unit,
+    onClearQuantity: () -> Unit,
     onDateChange: (LocalDate) -> Unit,
     onCategoryChange: (String) -> Unit,
     onAddCategory: (String) -> Unit,
@@ -253,6 +261,67 @@ fun EntrySheet(
                         .testTag("entry_amount"),
                 )
 
+                Spacer(Modifier.height(4.dp))
+
+                if (editor.showQuantity) {
+                    OutlinedTextField(
+                        value = editor.quantityText,
+                        onValueChange = onQuantityChange,
+                        label = { Text(stringResource(R.string.quantity)) },
+                        placeholder = { Text(stringResource(R.string.quantity_hint)) },
+                        singleLine = true,
+                        enabled = !editor.isSaving,
+                        isError = editor.quantityError != null,
+                        supportingText = editor.quantityError?.let {
+                            { Text(stringResource(R.string.error_quantity_invalid)) }
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal,
+                            imeAction = ImeAction.Done,
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("entry_quantity"),
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        QuantityUnit.entries.forEach { unit ->
+                            FilterChip(
+                                selected = editor.unitId == unit.id,
+                                onClick = { onUnitSelected(unit.id) },
+                                enabled = !editor.isSaving,
+                                label = { Text(stringResource(unit.labelRes())) },
+                                modifier = Modifier.testTag("entry_unit_${unit.id}"),
+                            )
+                        }
+                    }
+
+                    UnitPricePreview(
+                        amountText = editor.amountText,
+                        quantityText = editor.quantityText,
+                        unitId = editor.unitId,
+                    )
+
+                    TextButton(
+                        onClick = onClearQuantity,
+                        enabled = !editor.isSaving,
+                    ) {
+                        Text(stringResource(R.string.remove_quantity))
+                    }
+                } else {
+                    TextButton(
+                        onClick = onShowQuantity,
+                        enabled = !editor.isSaving,
+                        modifier = Modifier.testTag("entry_add_quantity"),
+                    ) {
+                        Text("+ " + stringResource(R.string.add_quantity))
+                    }
+                }
+
                 if (editor.mode == EditorMode.EDIT && !editor.isDirty) {
                     TextButton(
                         onClick = {
@@ -300,7 +369,9 @@ fun EntrySheet(
                                     },
                                 )
                             },
-                            modifier = Modifier.padding(top = 4.dp),
+                            modifier = Modifier
+                                .padding(top = 4.dp)
+                                .testTag("editor_category_$category"),
                         )
                     }
                     AssistChip(
@@ -480,6 +551,39 @@ fun EntrySheet(
             },
         )
     }
+}
+
+@Composable
+private fun UnitPricePreview(
+    amountText: String,
+    quantityText: String,
+    unitId: String?,
+) {
+    val amountPaise = (Money.parse(amountText) as? MoneyParseResult.Valid)?.paise ?: return
+    val quantityMilli = Quantities.parse(quantityText) ?: return
+    val unit = QuantityUnit.fromId(unitId) ?: return
+    val perUnit = UnitPrices.perBaseUnitPaise(amountPaise, quantityMilli, unit) ?: return
+
+    Text(
+        text = stringResource(
+            R.string.unit_price_preview,
+            Money.format(perUnit),
+            UnitPrices.priceUnitLabel(unit),
+        ),
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.primary,
+        modifier = Modifier
+            .padding(top = 8.dp)
+            .testTag("entry_unit_price"),
+    )
+}
+
+private fun QuantityUnit.labelRes(): Int = when (this) {
+    QuantityUnit.KILOGRAM -> R.string.unit_kg
+    QuantityUnit.GRAM -> R.string.unit_g
+    QuantityUnit.LITRE -> R.string.unit_litre
+    QuantityUnit.MILLILITRE -> R.string.unit_ml
+    QuantityUnit.PIECE -> R.string.unit_piece
 }
 
 @Composable

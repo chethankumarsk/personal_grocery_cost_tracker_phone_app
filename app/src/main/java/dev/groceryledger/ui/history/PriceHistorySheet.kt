@@ -364,6 +364,18 @@ private fun PurchaseRow(
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier.weight(1f),
         )
+        point.expense.unitPricePaise?.let { perUnit ->
+            Text(
+                text = stringResource(
+                    R.string.unit_price_compact,
+                    Money.format(perUnit),
+                    point.expense.unitPriceLabel.orEmpty(),
+                ),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(end = 12.dp),
+            )
+        }
         Text(
             text = Money.format(point.amountPaise),
             style = MaterialTheme.typography.bodyLarge,

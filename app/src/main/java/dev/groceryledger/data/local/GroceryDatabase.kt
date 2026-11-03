@@ -7,14 +7,20 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 import dev.groceryledger.domain.model.Categories
 
 @Database(
-    entities = [ExpenseEntity::class, ItemCatalogEntity::class, CategoryEntity::class],
-    version = 2,
+    entities = [
+        ExpenseEntity::class,
+        ItemCatalogEntity::class,
+        CategoryEntity::class,
+        ShoppingItemEntity::class,
+    ],
+    version = 4,
     exportSchema = true,
 )
 abstract class GroceryDatabase : RoomDatabase() {
     abstract fun expenseDao(): ExpenseDao
     abstract fun itemCatalogDao(): ItemCatalogDao
     abstract fun categoryDao(): CategoryDao
+    abstract fun shoppingListDao(): ShoppingListDao
 
     companion object {
         const val NAME = "grocery-ledger.db"
@@ -50,6 +56,41 @@ abstract class GroceryDatabase : RoomDatabase() {
                         arrayOf(preset, preset.lowercase(), index),
                     )
                 }
+            }
+        }
+
+        /**
+         * v2 -> v3: optional quantity (thousandths of the chosen unit) and its unit for
+         * unit-price comparison. Additive only; existing rows keep no quantity.
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE expenses ADD COLUMN quantity_milli INTEGER")
+                db.execSQL("ALTER TABLE expenses ADD COLUMN unit TEXT")
+            }
+        }
+
+        /**
+         * v3 -> v4: the shopping list lives in its own table. It is a scratch list and is
+         * not part of CSV backups.
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS shopping_items (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        amount_paise INTEGER,
+                        is_checked INTEGER NOT NULL,
+                        created_at INTEGER NOT NULL
+                    )
+                    """.trimIndent(),
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_shopping_items_created_at " +
+                        "ON shopping_items (created_at)",
+                )
             }
         }
 

@@ -3,17 +3,17 @@
 A small, offline-first Android app for tracking grocery spending in INR. The home screen is a calendar; each day holds item entries, and the selected day shows day, week, and month totals. Item names autocomplete from previous purchases, including the last price paid.
 
 - **Package:** `dev.groceryledger`
-- **Version:** 1.4.0 (versionCode 10)
+- **Version:** 1.5.0 (versionCode 11)
 - **Platform:** Android 8.0+ (minSdk 26), compile/target SDK 36
 - **UI:** Kotlin + Jetpack Compose + Material 3
-- **Storage:** Room + DataStore, entirely on-device
+- **Storage:** Room (schema v3) + DataStore, entirely on-device
 - **Requirements:** [REQUIREMENTS.md](REQUIREMENTS.md)
 - **LLM/developer handoff:** [AGENTS.md](AGENTS.md), [docs/KNOWLEDGE_GRAPH.md](docs/KNOWLEDGE_GRAPH.md)
 - **Release process:** [docs/RELEASING.md](docs/RELEASING.md)
 
 ## Status
 
-The v1 feature set, categories with Settings management, monthly category totals, recent-item chips, per-item price history, and both update paths are implemented. 81 JVM tests and 5 instrumentation tests pass, lint reports 0 errors, and a signed 1.4.0 release APK builds. Manual QA on a physical phone is still recommended before daily use.
+The v1 feature set, categories with Settings management, category filtering, monthly category totals, recent-item chips, per-item price history, an optional monthly budget, optional quantity/unit pricing, a shopping list, and a home-screen widget are implemented. 109 JVM tests and 7 instrumentation tests pass, lint reports 0 errors, and a signed 1.5.0 release APK builds. Manual QA on a physical phone is still recommended before daily use.
 
 ## Features
 
@@ -25,6 +25,11 @@ The v1 feature set, categories with Settings management, monthly category totals
 - Last price/date shown per suggestion, with a chip to reuse the previous price.
 - Up to five recent-item chips on a new entry: one tap restores the name, last price and last category.
 - Per-item **price history** from the day sheet or the edit form: latest and previous price, change amount and percentage, average/low/high, a trend chart, and every purchase (tap one to edit it).
+- **Category filter** under the summary: day, week, month, calendar cells and the day sheet narrow to one category.
+- Optional **monthly budget** in Settings, with a progress card showing spend, remaining, or over-budget.
+- Optional **quantity and unit** (kg, g, L, ml, piece) per entry, with a derived ₹/kg, ₹/L or ₹/piece shown in the editor, day sheet and price history.
+- **Shopping list** for items to buy: check them off, then **Add checked to today** turns priced items into entries and removes them.
+- **Home-screen widget** with today's total and an **Add item** shortcut that opens the add form directly.
 - "Save & add another" for entering a whole shopping trip quickly.
 - Settings for week start (Monday/Sunday) and theme (system/light/dark).
 - CSV export and duplicate-safe import, including versioned backups.
@@ -89,7 +94,7 @@ Outputs:
 
 - Debug: `app/build/outputs/apk/debug/app-debug.apk` (package suffix `.debug`, so it can coexist with release builds).
 - Release: `app/build/outputs/apk/release/app-release.apk` (package `dev.groceryledger`).
-- A convenient signed copy is also at `dist/GroceryLedger-1.4.0-release.apk`, with its checksum in `dist/README.txt` and `dist/GroceryLedger-1.4.0-release.apk.sha256`.
+- A convenient signed copy is also at `dist/GroceryLedger-1.5.0-release.apk`, with its checksum in `dist/README.txt` and `dist/GroceryLedger-1.5.0-release.apk.sha256`.
 
 Install on a connected phone with USB debugging:
 
@@ -116,19 +121,19 @@ Download only from this repository’s **Releases** page, never from a mirror, f
 PowerShell:
 
 ```powershell
-Get-FileHash .\GroceryLedger-1.4.0-release.apk -Algorithm SHA256
+Get-FileHash .\GroceryLedger-1.5.0-release.apk -Algorithm SHA256
 ```
 
 Linux/macOS:
 
 ```bash
-sha256sum -c GroceryLedger-1.4.0-release.apk.sha256
+sha256sum -c GroceryLedger-1.5.0-release.apk.sha256
 ```
 
 Verify the signing certificate (the path to `apksigner` depends on your Android SDK):
 
 ```powershell
-apksigner verify --print-certs .\GroceryLedger-1.4.0-release.apk
+apksigner verify --print-certs .\GroceryLedger-1.5.0-release.apk
 ```
 
 The signing certificate SHA-256 is stable across releases:
@@ -139,7 +144,7 @@ The signing certificate SHA-256 is stable across releases:
 
 Use the `.sha256` file attached to the release you downloaded; it is the authoritative checksum for that APK. Rebuilding the same version can change the APK hash, so do not compare against a hash copied from the README or release notes of another build.
 
-The package must be `dev.groceryledger` with versionCode `10` and versionName `1.4.0`. If the hash or certificate does not match, stop and re-download from the Releases page.
+The package must be `dev.groceryledger` with versionCode `11` and versionName `1.5.0`. If the hash or certificate does not match, stop and re-download from the Releases page.
 
 ### If Play Protect warns or blocks the install
 
@@ -173,13 +178,13 @@ Debug APKs use `dev.groceryledger.debug` and a debug key; they are for developme
 The app can check for updates from **Settings → Check for updates**.
 
 - Source: the public repository's GitHub Releases (`releases/latest`), not raw Git tags.
-- A release tag must look like `v1.4.0`; the app compares it numerically with its installed version.
+- A release tag must look like `v1.5.0`; the app compares it numerically with its installed version.
 - The dialog shows the latest version and release notes, with two choices:
   - **Download and install** downloads the APK asset into the app cache, verifies its size and GitHub's SHA-256 digest (when present), then verifies the package name, a higher `versionCode`, and that it is signed with the same key as the installed app. Android's package installer then shows its own confirmation. The first time, Android asks you to allow installs from Grocery Ledger.
   - **Open release page** is the previous browser flow: open the GitHub release and install the signed APK yourself. It remains available when a release has no APK asset or the in-app path fails.
 - The app never installs silently and never updates itself in the background.
 - Checks are manual only. No background polling and no analytics.
-- The latest published release is `v1.4.0`. From 1.3.2, publishing `v1.4.0` makes **Download and install** testable end to end; older builds must be updated manually once.
+- The latest published release is `v1.4.0`. From 1.4.0, publishing `v1.5.0` makes **Download and install** testable end to end; older builds must be updated manually once.
 - Publish the APK as a GitHub release asset; GitHub supplies the SHA-256 digest used for verification. See [docs/RELEASING.md](docs/RELEASING.md).
 
 The app requests `INTERNET` for the update check/download and `REQUEST_INSTALL_PACKAGES` solely so the in-app path can hand a verified APK to Android's installer.
@@ -193,15 +198,16 @@ The app requests `INTERNET` for the update check/download and `REQUEST_INSTALL_P
 - "Delete all data" clears entries and suggestion history after confirmation and offers to export first.
 - Data is never auto-expired.
 
-CSV format (v2):
+CSV format (v3):
 
 ```csv
-format_version,entry_uid,date,item,amount_inr,category
-2,<uuid>,2026-10-29,Milk,60.00,Dairy & Eggs
+format_version,entry_uid,date,item,amount_inr,category,quantity,unit
+3,<uuid>,2026-10-29,Milk,60.00,Dairy & Eggs,1.5,L
 ```
 
 - UTF-8 with BOM, RFC 4180 quoting.
-- `format_version` is 2; import accepts v1 (rows become `Uncategorized`) and rejects newer versions with an "update the app" message. v2 backups cannot be read by app versions before 1.2.0.
+- `format_version` is 3; import accepts v1 (rows become `Uncategorized`), v2 (no quantity), and rejects newer versions with an "update the app" message. Backups from 1.5.0+ cannot be read by older app versions.
+- `quantity` and `unit` are optional; unit is one of `kg`, `g`, `L`, `ml`, `piece`. Invalid quantity/unit values are reported per row.
 - Import previews new/duplicate/invalid row counts and reports bad lines.
 
 ## Tests

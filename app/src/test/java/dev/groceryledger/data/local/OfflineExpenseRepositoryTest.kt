@@ -282,4 +282,67 @@ class OfflineExpenseRepositoryTest {
     fun priceHistoryIsEmptyForAnUnknownItem() = runBlocking {
         assertTrue(repository.observePriceHistory("Nothing").first().points.isEmpty())
     }
+
+    @Test
+    fun totalsAndEntriesCanBeFilteredByCategory() = runBlocking {
+        repository.add("Milk", 6_000, date, category = "Dairy")
+        repository.add("Cheese", 4_000, date.plusDays(1), category = "Dairy")
+        repository.add("Chips", 2_000, date, category = "Snacks")
+
+        val range = DateRange(date, date.plusDays(1))
+
+        assertEquals(12_000L, repository.observeTotal(range).first())
+        assertEquals(10_000L, repository.observeTotal(range, "Dairy").first())
+        assertEquals(2_000L, repository.observeTotal(range, "Snacks").first())
+
+        val filteredDays = repository.observeDailyTotals(range, "Dairy").first()
+        assertEquals(listOf(6_000L, 4_000L), filteredDays.map { it.totalPaise })
+
+        val filteredEntries = repository.observeEntries(date, "Dairy").first()
+        assertEquals(listOf("Milk"), filteredEntries.map { it.name })
+        assertEquals(2, repository.observeEntries(date).first().size)
+    }
+
+    @Test
+    fun quantityAndUnitRoundTripThroughTheRepository() = runBlocking {
+        val rice = repository.add(
+            name = "Rice",
+            amountPaise = 8_000,
+            date = date,
+            quantityMilli = 2_000,
+            unit = "kg",
+        )
+
+        assertEquals(2_000L, rice.quantityMilli)
+        assertEquals("kg", rice.unit)
+        assertEquals(4_000L, rice.unitPricePaise)
+
+        repository.update(
+            id = rice.id,
+            name = "Rice",
+            amountPaise = 8_000,
+            date = date,
+            quantityMilli = null,
+            unit = null,
+        )
+
+        val updated = repository.observeEntries(date).first().single()
+        assertEquals(null, updated.quantityMilli)
+        assertEquals(null, updated.unit)
+        assertEquals(null, updated.unitPricePaise)
+    }
+
+    @Test
+    fun unknownUnitsAreDroppedRatherThanStored() = runBlocking {
+        val oil = repository.add(
+            name = "Oil",
+            amountPaise = 15_000,
+            date = date,
+            quantityMilli = 1_000,
+            unit = "bottle",
+        )
+
+        assertEquals(null, oil.quantityMilli)
+        assertEquals(null, oil.unit)
+    }
 }

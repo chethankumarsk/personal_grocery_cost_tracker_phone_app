@@ -35,7 +35,7 @@ No Android or Room types cross into `domain`.
 
 - Room entities/DAOs/database (schema exported to `app/schemas`).
 - `OfflineExpenseRepository` implements totals, entries, autocomplete, CRUD, undo restore, import, clearing, and category CRUD.
-- Categories are stored by name on entries and listed in the `categories` table (schema v2). Renaming updates every entry using the category; deleting reassigns those entries to `Uncategorized`.
+- Categories are stored by name on entries and listed in the `categories` table (schema v2). Renaming updates every entry using the category; deleting reassigns those entries to `Uncategorized`. Schema v3 adds nullable `quantity_milli` and `unit` to entries for unit prices; schema v4 adds the device-only `shopping_items` table.
 - Category totals are a grouped SQL sum over the selected month, exposed as `observeCategoryTotals`; no totals are stored.
 - The `item_catalog` table is a derived cache for suggestions and last-price memory. It is maintained transactionally with entry writes and fully rebuilt after an import. It can always be rebuilt from `expenses`.
 - `CsvBackup` is a pure writer/parser for the versioned CSV format. `CsvBackupManager` handles Android `ContentResolver` streams.
@@ -75,16 +75,18 @@ Catalog maintenance:
 
 ## CSV format
 
-Version 1:
+Current format (v3):
 
 ```
-format_version,entry_uid,date,item,amount_inr
-1,<uuid>,2026-10-29,Milk,60.00
+format_version,entry_uid,date,item,amount_inr,category,quantity,unit
+3,<uuid>,2026-10-29,Milk,60.00,Dairy & Eggs,1.5,L
 ```
 
+- v1 (`format_version,entry_uid,date,item,amount_inr`) and v2 (adds `category`) still import. Older app versions reject v3 files.
+- `quantity` is thousandths of `unit` rendered as a decimal; `unit` is `kg`, `g`, `L`, `ml` or `piece`. Both may be empty.
 - UTF-8 with BOM, CRLF records, RFC 4180 quoting.
 - `entry_uid` is generated on insert (UUID v4) and preserved across exports/imports. It makes re-imports idempotent.
-- Import validates the header, format version, UUIDs, ISO dates (not future), names (1–80 chars), and amounts.
+- Import validates the header, format version, UUIDs, ISO dates (not future), names (1–80 chars), amounts, and quantity/unit pairs.
 - Valid rows are imported in one transaction; invalid rows are reported by line. Newer format versions are rejected before any write.
 - Import is merge-only; it never overwrites or deletes existing entries.
 
@@ -115,7 +117,7 @@ JVM tests use JUnit 4 + Robolectric:
 - APK download tests (size/checksum/cancellation cleanup) against a local HTTP server.
 - Compose/Robolectric smoke tests for activity launch, settings, opening the add sheet, and saving an entry.
 
-There are 81 JVM tests plus 5 instrumentation tests (Room migration and APK verifier). Physical-device performance and visual checks are still pending.
+There are 109 JVM tests plus 7 instrumentation tests (Room migrations and APK verifier). Physical-device performance and visual checks are still pending.
 
 ## Update path
 

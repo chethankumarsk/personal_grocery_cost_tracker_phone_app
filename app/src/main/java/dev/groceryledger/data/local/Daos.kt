@@ -14,10 +14,14 @@ interface ExpenseDao {
         """
         SELECT * FROM expenses
         WHERE expense_date = :dateEpochDay
+          AND (:category IS NULL OR category = :category)
         ORDER BY created_at ASC, id ASC
         """,
     )
-    fun observeEntriesForDate(dateEpochDay: Long): Flow<List<ExpenseEntity>>
+    fun observeEntriesForDate(
+        dateEpochDay: Long,
+        category: String?,
+    ): Flow<List<ExpenseEntity>>
 
     @Query(
         """
@@ -36,10 +40,15 @@ interface ExpenseDao {
                COUNT(*) AS itemCount
         FROM expenses
         WHERE expense_date BETWEEN :startEpochDay AND :endEpochDay
+          AND (:category IS NULL OR category = :category)
         GROUP BY expense_date
         """,
     )
-    fun observeDailyTotals(startEpochDay: Long, endEpochDay: Long): Flow<List<DailyTotalRow>>
+    fun observeDailyTotals(
+        startEpochDay: Long,
+        endEpochDay: Long,
+        category: String?,
+    ): Flow<List<DailyTotalRow>>
 
     @Query(
         """
@@ -61,9 +70,14 @@ interface ExpenseDao {
         """
         SELECT SUM(amount_paise) FROM expenses
         WHERE expense_date BETWEEN :startEpochDay AND :endEpochDay
+          AND (:category IS NULL OR category = :category)
         """,
     )
-    fun observeTotal(startEpochDay: Long, endEpochDay: Long): Flow<Long?>
+    fun observeTotal(
+        startEpochDay: Long,
+        endEpochDay: Long,
+        category: String?,
+    ): Flow<Long?>
 
     @Query("SELECT * FROM expenses ORDER BY expense_date ASC, created_at ASC, id ASC")
     suspend fun getAll(): List<ExpenseEntity>
@@ -199,5 +213,29 @@ interface ItemCatalogDao {
     suspend fun clear()
 
     @Query("SELECT COUNT(*) FROM item_catalog")
+    suspend fun count(): Int
+}
+
+@Dao
+interface ShoppingListDao {
+    @Query("SELECT * FROM shopping_items ORDER BY is_checked ASC, created_at ASC, id ASC")
+    fun observeAll(): Flow<List<ShoppingItemEntity>>
+
+    @Query("SELECT * FROM shopping_items WHERE is_checked = 1 ORDER BY created_at ASC, id ASC")
+    suspend fun checkedItems(): List<ShoppingItemEntity>
+
+    @Insert
+    suspend fun insert(item: ShoppingItemEntity): Long
+
+    @Query("UPDATE shopping_items SET is_checked = :checked WHERE id = :id")
+    suspend fun setChecked(id: Long, checked: Boolean)
+
+    @Query("DELETE FROM shopping_items WHERE id = :id")
+    suspend fun delete(id: Long)
+
+    @Query("DELETE FROM shopping_items")
+    suspend fun clear()
+
+    @Query("SELECT COUNT(*) FROM shopping_items")
     suspend fun count(): Int
 }

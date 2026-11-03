@@ -25,7 +25,7 @@ python tools/knowledge_graph.py --status pending
 
 - App: **Grocery Ledger**
 - Package / application ID: **`dev.groceryledger`**
-- Current version: **1.4.0** / versionCode **10**
+- Current version: **1.5.0** / versionCode **11**
 - Repository: `https://github.com/chethankumarsk/personal_grocery_cost_tracker_phone_app`
 - Platform: Android 8.0+ (minSdk 26), compile/target SDK 36
 - Stack: Kotlin, Jetpack Compose, Material 3, Room, DataStore, coroutines
@@ -38,8 +38,8 @@ python tools/knowledge_graph.py --status pending
 2. **Dates are epoch days.** An entry has a calendar date, not a timestamp; timezone changes must not move it.
 3. **Totals are derived.** Day/week/month values are SQL sums over inclusive ranges; do not store totals.
 4. **`entry_uid` is stable.** Generate UUIDs on insert and preserve them across export/import. Import is merge-only and idempotent.
-5. **CSV is versioned.** `format_version` is **2** (v2 adds `category`). New versions must import all older versions; older apps reject newer files. Do not silently change column meanings.
-6. **No destructive Room migrations.** The database is at **version 2** (categories). Export schema JSON, add migrations and migration tests, preserve existing data. The catalog is rebuildable; entries are not.
+5. **CSV is versioned.** `format_version` is **3** (v2 adds `category`, v3 adds `quantity`/`unit`). New versions must import all older versions; older apps reject newer files. Do not silently change column meanings.
+6. **No destructive Room migrations.** The database is at **version 4** (categories, quantity/unit, shopping list). Export schema JSON, add migrations and migration tests, preserve existing data. The catalog is rebuildable; entries are not.
 7. **`applicationId` and signing key are permanent.** Changing either breaks in-place updates. Never commit the keystore, `keystore.properties`, `local.properties`, or `dist/`.
 8. **Network policy:** the app makes no network calls except the user-initiated GitHub Releases update check and the update APK download the user starts. No analytics, ads, or background sync. The only install-related permission is `REQUEST_INSTALL_PACKAGES`, used solely to hand a verified APK to Android's installer. Keep it that way unless requirements are explicitly changed.
 9. **UI does not touch Room.** Compose → `MainViewModel` → repository interfaces → Room/CSV. Business rules stay in pure Kotlin.
@@ -48,7 +48,7 @@ python tools/knowledge_graph.py --status pending
 ## Layout
 
 ```
-domain/        models, money, date ranges, suggestion ranking, repository interfaces
+domain/        models, money, date ranges, suggestion ranking, budget, history, repository interfaces
 data/local/    Room entities, DAOs, database, offline repository
 data/csv/      pure CSV writer/parser and import models
 data/backup/   Android file-picker integration
@@ -69,22 +69,22 @@ $env:JAVA_HOME = "C:\Users\Administrator\toolchains\jdk-21.0.12.1+1"
 
 - Debug APK: `app/build/outputs/apk/debug/app-debug.apk` (package `dev.groceryledger.debug`)
 - Release APK: `app/build/outputs/apk/release/app-release.apk` (package `dev.groceryledger`)
-- Convenience copy: `dist/GroceryLedger-1.4.0-release.apk`
+- Convenience copy: `dist/GroceryLedger-1.5.0-release.apk`
 
 Use a release-signed APK for real data. Debug builds cannot be updated into release builds.
 
 ## Current status
 
-- v1 feature set is implemented: calendar, day/week/month totals, monthly category totals, add/edit/delete/undo, autocomplete + last price + recent-item chips + per-item price history, categories (including rename/delete in Settings), CSV export/import, settings, update check.
-- 81 JVM tests and 5 instrumentation tests (Room migration + APK verifier) pass; lint has 0 errors.
-- Signed release APK builds (1.4.0 / versionCode 10).
+- v1 feature set is implemented: calendar, day/week/month totals, monthly category totals, category filter, add/edit/delete/undo, autocomplete + last price + recent-item chips + per-item price history, optional monthly budget, optional quantity/unit pricing, shopping list, home-screen widget, categories (including rename/delete in Settings), CSV export/import, settings, update check.
+- 109 JVM tests and 7 instrumentation tests (Room migrations + APK verifier) pass; lint has 0 errors.
+- Signed release APK builds (1.5.0 / versionCode 11).
 - Physical-device visual/performance QA is pending.
 - Emulator QA passes: AVD `gl36` (Android 16 / API 36, AEHD 2.2) runs the UiAutomator suite in
   `D:\githubProjects\grocery_ledger_avd_aehd_automation` — 6/6, including the add-entry sheet
   layout regressions. Verified on a Nothing Phone 3a (Android 16, Nothing OS 4.1) over adb with
   Gboard; physical-device visual/accessibility QA is still outstanding.
-- GitHub release **v1.4.0** is the latest published release (signed APK asset, `.sha256`, release notes). The update checker finds it; an app already on 1.4.0 reports "You're up to date".
-- In-app update path is implemented (download → size/digest check → package/version/signature check → Android installer) with the release page retained as fallback. The next step is verifying 1.3.2 → 1.4.0 on a device.
+- GitHub release **v1.5.0** is the latest published release (signed APK asset, `.sha256`, release notes). The update checker finds it; an app already on 1.5.0 reports "You're up to date".
+- In-app update path is implemented (download → size/digest check → package/version/signature check → Android installer) with the release page retained as fallback. The next step is verifying 1.4.0 → 1.5.0 on a device.
 - GitHub computes the asset `digest` used for checksum verification; it must equal the release's `.sha256`.
 
 ## When making a change

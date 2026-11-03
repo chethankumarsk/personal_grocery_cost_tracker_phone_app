@@ -2,6 +2,8 @@ package dev.groceryledger.data.csv
 
 import dev.groceryledger.domain.model.Categories
 import dev.groceryledger.domain.model.Expense
+import dev.groceryledger.domain.model.QuantityUnit
+import dev.groceryledger.domain.model.Quantities
 import dev.groceryledger.domain.money.Money
 import dev.groceryledger.domain.money.MoneyParseResult
 import java.time.LocalDate
@@ -10,11 +12,11 @@ import java.util.UUID
 
 object CsvBackup {
     /**
-     * v2 adds the `category` column. v1 files still import: their rows become
-     * [Categories.UNCATEGORIZED]. Older app versions reject v2 files.
+     * v2 adds the `category` column; v3 adds optional `quantity` and `unit` for unit-price
+     * comparison. Older files still import, and older app versions reject v3 files.
      */
-    const val CURRENT_FORMAT_VERSION = 2
-    const val HEADER = "format_version,entry_uid,date,item,amount_inr,category"
+    const val CURRENT_FORMAT_VERSION = 3
+    const val HEADER = "format_version,entry_uid,date,item,amount_inr,category,quantity,unit"
 
     private val baseColumns = listOf(
         "format_version",
@@ -24,6 +26,8 @@ object CsvBackup {
         "amount_inr",
     )
     private const val CATEGORY_COLUMN = "category"
+    private const val QUANTITY_COLUMN = "quantity"
+    private const val UNIT_COLUMN = "unit"
 
     fun write(expenses: List<Expense>): String {
         val builder = StringBuilder()
@@ -39,7 +43,9 @@ object CsvBackup {
                     .append(expense.date).append(',')
                     .append(escape(expense.name)).append(',')
                     .append(Money.formatPlain(expense.amountPaise)).append(',')
-                    .append(escape(expense.category))
+                    .append(escape(expense.category)).append(',')
+                    .append(expense.quantityMilli?.let { Quantities.format(it) }.orEmpty()).append(',')
+                    .append(expense.unit.orEmpty())
                     .append("\r\n")
             }
 
@@ -63,9 +69,12 @@ object CsvBackup {
         val header = records.first().fields.map { it.trim().lowercase(Locale.ROOT) }
         if (header.size != header.distinct().size) throw BadBackupException()
 
-        val columnIndexes = (baseColumns + CATEGORY_COLUMN).associateWith { header.indexOf(it) }
+        val columnIndexes = (baseColumns + CATEGORY_COLUMN + QUANTITY_COLUMN + UNIT_COLUMN)
+            .associateWith { header.indexOf(it) }
         if (baseColumns.any { columnIndexes.getValue(it) < 0 }) throw BadBackupException()
         val categoryIndex = columnIndexes.getValue(CATEGORY_COLUMN)
+        val quantityIndex = columnIndexes.getValue(QUANTITY_COLUMN)
+        val unitIndex = columnIndexes.getValue(UNIT_COLUMN)
 
         val entries = mutableListOf<Expense>()
         val errors = mutableListOf<ImportRowError>()
@@ -90,8 +99,9 @@ object CsvBackup {
                 errors.add(ImportRowError(record.line, ImportRowErrorReason.INVALID_VERSION))
                 continue
             }
-            // v2 carries a category column; v1 files predate it.
+            // v2 carries a category column; v3 adds quantity and unit.
             if (version >= 2 && categoryIndex < 0) throw BadBackupException()
+            if (version >= 3 && (quantityIndex < 0 || unitIndex < 0)) throw BadBackupException()
 
             val uid = runCatching {
                 UUID.fromString(field("entry_uid").trim()).toString()
@@ -131,6 +141,27 @@ object CsvBackup {
                 Categories.UNCATEGORIZED
             }
 
+            var quantityMilli: Long? = null
+            var unit: String? = null
+            if (version >= 3) {
+                val rawQuantity = field(QUANTITY_COLUMN).trim()
+                val rawUnit = field(UNIT_COLUMN).trim()
+                if (rawQuantity.isNotEmpty() || rawUnit.isNotEmpty()) {
+                    val parsedUnit = QuantityUnit.fromId(rawUnit)
+                    if (parsedUnit == null) {
+                        errors.add(ImportRowError(record.line, ImportRowErrorReason.INVALID_UNIT))
+                        continue
+                    }
+                    val parsedQuantity = Quantities.parse(rawQuantity)
+                    if (parsedQuantity == null) {
+                        errors.add(ImportRowError(record.line, ImportRowErrorReason.INVALID_QUANTITY))
+                        continue
+                    }
+                    quantityMilli = parsedQuantity
+                    unit = parsedUnit.id
+                }
+            }
+
             if (uid in existingUids || !seenUids.add(uid)) {
                 duplicates++
                 continue
@@ -146,6 +177,8 @@ object CsvBackup {
                     createdAt = nowMillis + entries.size,
                     updatedAt = nowMillis,
                     category = category,
+                    quantityMilli = quantityMilli,
+                    unit = unit,
                 ),
             )
         }
