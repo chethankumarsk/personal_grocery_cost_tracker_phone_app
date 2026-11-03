@@ -1,7 +1,7 @@
 # Price History — Design
 
-Status: **implemented in `Unreleased` (1.4.0)** — see §13 for where the build differs from this design
-Target: **1.4.0** (after recent-item chips, which are already in `Unreleased`)
+Status: **implemented in 1.4.0** — see §13 for where the build differs from this design
+Target: **1.4.0** (shipped together with recent-item chips)
 Scope: read-only insight; no schema, CSV, or settings change
 
 ## 1. Problem
