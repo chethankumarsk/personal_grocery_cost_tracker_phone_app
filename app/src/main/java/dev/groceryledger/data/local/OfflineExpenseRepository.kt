@@ -386,12 +386,14 @@ class OfflineExpenseRepository(
         )
     }
 
-    private fun toSuggestion(entity: ItemCatalogEntity): ItemSuggestion = ItemSuggestion(
-        name = entity.name,
-        lastPricePaise = entity.lastPricePaise,
-        lastDate = LocalDate.ofEpochDay(entity.lastExpenseDate),
-        usageCount = entity.usageCount,
-        lastUsedAt = entity.lastUsedAt,
+    private fun toSuggestion(row: ItemSuggestionRow): ItemSuggestion = ItemSuggestion(
+        name = row.name,
+        lastPricePaise = row.lastPricePaise,
+        lastDate = LocalDate.ofEpochDay(row.lastExpenseDate),
+        usageCount = row.usageCount,
+        lastUsedAt = row.lastUsedAt,
+        quantityMilli = row.quantityMilli,
+        unit = row.unit,
     )
 
     private fun escapeLike(value: String): String = buildString {

@@ -113,7 +113,7 @@
       "label": "EntrySheet",
       "status": "done",
       "path": "app/src/main/java/dev/groceryledger/ui/entry/EntrySheet.kt",
-      "summary": "Add/edit/delete form, autocomplete suggestions, last-price chip, recent-item chips, date picker, discard confirmation, and save actions."
+      "summary": "Add/edit/delete form, autocomplete suggestions with last price and unit price, a Use-price chip that fills the name and amount together, recent-item chips, date picker, discard confirmation, and save actions."
     },
     {
       "id": "ui.settings",

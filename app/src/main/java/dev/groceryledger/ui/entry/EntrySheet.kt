@@ -99,7 +99,7 @@ fun EntrySheet(
     onCategoryChange: (String) -> Unit,
     onAddCategory: (String) -> Unit,
     onSuggestionSelected: (ItemSuggestion) -> Unit,
-    onUseLastPrice: (Long) -> Unit,
+    onUseSuggestion: (ItemSuggestion) -> Unit,
     onRecentItemSelected: (RecentItem) -> Unit,
     onOpenPriceHistory: () -> Unit,
     onSave: () -> Unit,
@@ -208,7 +208,7 @@ fun EntrySheet(
                             amountFocus.requestFocus()
                         },
                         onUsePrice = { suggestion ->
-                            onUseLastPrice(suggestion.lastPricePaise)
+                            onUseSuggestion(suggestion)
                             amountFocus.requestFocus()
                         },
                     )
@@ -670,14 +670,27 @@ private fun SuggestionPanel(
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                         )
+                        val unitPricePaise = suggestion.unitPricePaise
+                        val unitPriceLabel = suggestion.unitPriceLabel
                         Text(
-                            text = stringResource(
-                                R.string.last_paid_on,
-                                Money.format(suggestion.lastPricePaise),
-                                DateRanges.formatDay(suggestion.lastDate),
-                            ),
+                            text = if (unitPricePaise != null && unitPriceLabel != null) {
+                                stringResource(
+                                    R.string.last_paid_on_with_unit,
+                                    Money.format(suggestion.lastPricePaise),
+                                    DateRanges.formatDay(suggestion.lastDate),
+                                    Money.format(unitPricePaise),
+                                    unitPriceLabel,
+                                )
+                            } else {
+                                stringResource(
+                                    R.string.last_paid_on,
+                                    Money.format(suggestion.lastPricePaise),
+                                    DateRanges.formatDay(suggestion.lastDate),
+                                )
+                            },
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
                         )
                     }
                     AssistChip(

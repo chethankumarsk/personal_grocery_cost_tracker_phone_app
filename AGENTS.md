@@ -37,7 +37,7 @@ python tools/knowledge_graph.py --status pending
 
 - App: **Grocery Ledger**
 - Package / application ID: **`dev.groceryledger`**
-- Current version: **1.5.1** / versionCode **12**
+- Current version: **1.5.2** / versionCode **13**
 - Repository: `https://github.com/chethankumarsk/personal_grocery_cost_tracker_phone_app`
 - Platform: Android 8.0+ (minSdk 26), compile/target SDK 36
 - Stack: Kotlin, Jetpack Compose, Material 3, Room, DataStore, coroutines
@@ -81,22 +81,22 @@ $env:JAVA_HOME = "C:\Users\Administrator\toolchains\jdk-21.0.12.1+1"
 
 - Debug APK: `app/build/outputs/apk/debug/app-debug.apk` (package `dev.groceryledger.debug`)
 - Release APK: `app/build/outputs/apk/release/app-release.apk` (package `dev.groceryledger`)
-- Convenience copy: `dist/GroceryLedger-1.5.1-release.apk`
+- Convenience copy: `dist/GroceryLedger-1.5.2-release.apk`
 
 Use a release-signed APK for real data. Debug builds cannot be updated into release builds.
 
 ## Current status
 
 - v1 feature set is implemented: calendar, day/week/month totals, monthly category totals, category filter, add/edit/delete/undo, autocomplete + last price + recent-item chips + per-item price history, optional monthly budget, optional quantity/unit pricing, shopping list, home-screen widget, categories (including rename/delete in Settings), CSV export/import, settings, update check.
-- 116 JVM tests and 7 instrumentation tests (Room migrations + APK verifier) pass; lint has 0 errors.
-- Signed release APK builds (1.5.1 / versionCode 12).
+- 120 JVM tests and 7 instrumentation tests (Room migrations + APK verifier) pass; lint has 0 errors.
+- Signed release APK builds (1.5.2 / versionCode 13).
 - Physical-device visual/performance QA is pending.
 - Emulator QA passes: AVD `gl36` (Android 16 / API 36, AEHD 2.2) runs the UiAutomator suite in
   `D:\githubProjects\grocery_ledger_avd_aehd_automation` — 6/6, including the add-entry sheet
   layout regressions. Verified on a Nothing Phone 3a (Android 16, Nothing OS 4.1) over adb with
   Gboard; physical-device visual/accessibility QA is still outstanding.
-- GitHub release **v1.5.1** is the latest published release (signed APK, `.sha256`, release notes); the update checker finds it and 1.5.1 reports "You're up to date".
-- In-app update path is implemented (download → size/digest check → package/version/signature check → Android installer) with the release page retained as fallback. Verified end to end on the emulator for 1.4.0 → 1.5.0 and 1.5.0 → 1.5.1 with data intact; the same flow is pending on a physical device.
+- GitHub release **v1.5.1** is the latest published release; 1.5.2 fixes the autocomplete Use-price chip and shows unit prices in Previous items, and is ready to publish.
+- In-app update path is implemented (download → size/digest check → package/version/signature check → Android installer) with the release page retained as fallback. Verified end to end on the emulator for 1.4.0 → 1.5.0 and 1.5.0 → 1.5.1, and 1.5.1 → 1.5.2 installed in place, all with data intact; the same flow is pending on a physical device.
 - GitHub computes the asset `digest` used for checksum verification; it must equal the release's `.sha256`.
 
 ## When making a change

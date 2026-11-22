@@ -170,15 +170,33 @@ interface CategoryDao {
 
 @Dao
 interface ItemCatalogDao {
+    /**
+     * Autocomplete rows. The quantity and unit come from the item's latest entry (the same
+     * ordering [ExpenseDao.latestForName] uses), so the panel can show a unit price without
+     * duplicating it in the catalog table.
+     */
     @Query(
         """
-        SELECT * FROM item_catalog
-        WHERE name_normalized LIKE '%' || :escapedQuery || '%' ESCAPE '\'
-        ORDER BY usage_count DESC, last_expense_date DESC
+        SELECT ic.name AS name,
+               ic.last_price_paise AS lastPricePaise,
+               ic.last_expense_date AS lastExpenseDate,
+               ic.usage_count AS usageCount,
+               ic.last_used_at AS lastUsedAt,
+               (SELECT e.quantity_milli FROM expenses e
+                WHERE e.name_normalized = ic.name_normalized
+                ORDER BY e.expense_date DESC, e.created_at DESC, e.id DESC
+                LIMIT 1) AS quantityMilli,
+               (SELECT e.unit FROM expenses e
+                WHERE e.name_normalized = ic.name_normalized
+                ORDER BY e.expense_date DESC, e.created_at DESC, e.id DESC
+                LIMIT 1) AS unit
+        FROM item_catalog ic
+        WHERE ic.name_normalized LIKE '%' || :escapedQuery || '%' ESCAPE '\'
+        ORDER BY ic.usage_count DESC, ic.last_expense_date DESC
         LIMIT 500
         """,
     )
-    fun observeSearch(escapedQuery: String): Flow<List<ItemCatalogEntity>>
+    fun observeSearch(escapedQuery: String): Flow<List<ItemSuggestionRow>>
 
     /**
      * Most recently used items, newest first, for the quick-add chips. The category comes

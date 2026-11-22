@@ -51,6 +51,7 @@
     <string name="error_amount_too_large">The amount cannot exceed ₹10,00,000.</string>
 
     <string name="last_paid_on">Last paid %1$s on %2$s</string>
+    <string name="last_paid_on_with_unit">Last paid %1$s on %2$s · %3$s/%4$s</string>
     <string name="use_last_price">Use %1$s</string>
     <string name="previous_items">Previous items</string>
     <string name="recent_items">Recent items</string>

@@ -105,6 +105,27 @@ data class RecentItemRow(
     val category: String,
 )
 
+/**
+ * A catalog row plus the quantity/unit of that item's latest purchase. Taken from the entry
+ * rather than stored on the catalog, so the panel never shows a stale unit price.
+ */
+data class ItemSuggestionRow(
+    @ColumnInfo(name = "name")
+    val name: String,
+    @ColumnInfo(name = "lastPricePaise")
+    val lastPricePaise: Long,
+    @ColumnInfo(name = "lastExpenseDate")
+    val lastExpenseDate: Long,
+    @ColumnInfo(name = "usageCount")
+    val usageCount: Int,
+    @ColumnInfo(name = "lastUsedAt")
+    val lastUsedAt: Long,
+    @ColumnInfo(name = "quantityMilli")
+    val quantityMilli: Long?,
+    @ColumnInfo(name = "unit")
+    val unit: String?,
+)
+
 /** An item on the shopping list; [amountPaise] is optional until it is turned into an entry. */
 @Entity(tableName = "shopping_items", indices = [Index(value = ["created_at"])])
 data class ShoppingItemEntity(

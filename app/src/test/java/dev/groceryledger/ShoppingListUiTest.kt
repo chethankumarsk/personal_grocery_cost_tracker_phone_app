@@ -54,6 +54,9 @@ class ShoppingListUiTest {
             }
         }
 
+        composeRule.waitUntil(timeoutMillis = 5_000) {
+            composeRule.onAllNodes(isToggleable()).fetchSemanticsNodes().isNotEmpty()
+        }
         composeRule.onAllNodes(isToggleable()).onFirst().performClick()
         composeRule.waitUntil(timeoutMillis = 5_000) {
             runBlocking { app.container.shoppingListRepository.checkedItems().isNotEmpty() }

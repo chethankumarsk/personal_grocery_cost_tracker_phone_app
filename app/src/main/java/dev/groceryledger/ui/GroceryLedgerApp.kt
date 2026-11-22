@@ -226,7 +226,7 @@ private fun AppContent(
                             onCategoryChange = viewModel::updateCategory,
                             onAddCategory = viewModel::addCategory,
                             onSuggestionSelected = viewModel::selectSuggestion,
-                            onUseLastPrice = viewModel::useLastPrice,
+                            onUseSuggestion = viewModel::applySuggestion,
                             onRecentItemSelected = viewModel::useRecentItem,
                             onOpenPriceHistory = viewModel::openPriceHistoryFromEditor,
                             onSave = viewModel::save,

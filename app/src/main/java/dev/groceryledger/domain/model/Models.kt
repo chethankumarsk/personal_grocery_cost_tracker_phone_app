@@ -44,7 +44,21 @@ data class ItemSuggestion(
     val lastDate: LocalDate,
     val usageCount: Int,
     val lastUsedAt: Long,
-)
+    val quantityMilli: Long? = null,
+    val unit: String? = null,
+) {
+    /** Price per kg, litre or piece when the last purchase recorded a quantity. */
+    val unitPricePaise: Long?
+        get() = UnitPrices.perBaseUnitPaise(
+            amountPaise = lastPricePaise,
+            quantityMilli = quantityMilli,
+            unit = QuantityUnit.fromId(unit),
+        )
+
+    /** "kg", "L" or "piece" for [unitPricePaise], or null when there is no quantity. */
+    val unitPriceLabel: String?
+        get() = QuantityUnit.fromId(unit)?.let { UnitPrices.priceUnitLabel(it) }
+}
 
 /** A one-tap chip that restores the name, last price and last category of a recent item. */
 data class RecentItem(

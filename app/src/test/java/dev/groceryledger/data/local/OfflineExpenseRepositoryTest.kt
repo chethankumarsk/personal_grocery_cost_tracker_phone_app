@@ -115,6 +115,30 @@ class OfflineExpenseRepositoryTest {
     }
 
     @Test
+    fun suggestionsCarryTheLatestUnitPrice() = runBlocking {
+        repository.add("Rice", 8_000, date, quantityMilli = 2_000, unit = "kg")
+        repository.add("Milk", 6_000, date)
+
+        val rice = repository.observeSuggestions("ri").first().single()
+        assertEquals(4_000L, rice.unitPricePaise)
+        assertEquals("kg", rice.unitPriceLabel)
+
+        val milk = repository.observeSuggestions("mi").first().single()
+        assertEquals(null, milk.unitPricePaise)
+        assertEquals(null, milk.unitPriceLabel)
+    }
+
+    @Test
+    fun suggestionsFollowTheLatestPurchaseWhenTheUnitChanges() = runBlocking {
+        repository.add("Rice", 8_000, date, quantityMilli = 2_000, unit = "kg")
+        repository.add("Rice", 5_000, date.plusDays(1), quantityMilli = 500_000, unit = "g")
+
+        val rice = repository.observeSuggestions("ri").first().single()
+        assertEquals(10_000L, rice.unitPricePaise)
+        assertEquals("kg", rice.unitPriceLabel)
+    }
+
+    @Test
     fun categoryTotalsAggregateTheSelectedRange() = runBlocking {
         repository.add("Milk", 6_000, date, category = "Dairy")
         repository.add("Cheese", 4_000, date.plusDays(1), category = "Dairy")

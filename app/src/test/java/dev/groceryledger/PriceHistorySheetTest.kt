@@ -125,7 +125,10 @@ class PriceHistorySheetTest {
                 .fetchSemanticsNodes()
                 .isNotEmpty()
         }
-        composeRule.onNodeWithContentDescription(description).performClick()
+        // Semantics click rather than a coordinate tap: the day cell can sit behind the
+        // floating "Add item" button depending on the month.
+        composeRule.onNodeWithContentDescription(description)
+            .performSemanticsAction(SemanticsActions.OnClick)
         composeRule.waitForIdle()
     }
 

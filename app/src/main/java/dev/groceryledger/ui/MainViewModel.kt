@@ -473,10 +473,16 @@ class MainViewModel(
         }
     }
 
-    fun useLastPrice(pricePaise: Long) {
+    /**
+     * Applies a suggestion in one step: the full item name plus its last price. Used by the
+     * "Use ₹…" chip, which previously filled only the amount and left a half-typed name.
+     */
+    fun applySuggestion(suggestion: ItemSuggestion) {
         _editor.update { current ->
             current?.copy(
-                amountText = Money.formatEditable(pricePaise),
+                name = suggestion.name,
+                nameError = null,
+                amountText = Money.formatEditable(suggestion.lastPricePaise),
                 amountError = null,
                 showSuggestions = false,
             )

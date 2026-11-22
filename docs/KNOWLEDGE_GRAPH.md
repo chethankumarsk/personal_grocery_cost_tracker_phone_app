@@ -11,7 +11,7 @@ This is the map for LLM sessions and humans joining the project. It complements 
 
 Last updated: 3 November 2026.
 
-Current release: **1.5.1** (versionCode 12), published on GitHub. It adds category filtering, an optional monthly budget, optional quantity/unit pricing (schema v3, CSV v3), a device-only shopping list and a home-screen widget (schema v4), and fixes the 200% font layout of the budget card and shopping list plus raw Markdown in the update dialog. The verified in-app update path is live, so the next device step is confirming 1.4.0 → 1.5.1.
+Current release: **1.5.1** (versionCode 12), published on GitHub. 1.5.2 fixes the autocomplete Use-price chip (it now fills the item name too) and shows unit prices in Previous items. The verified in-app update path is live, so the next device step is confirming 1.4.0 → 1.5.1.
 
 ## How to use it in a new session
 
@@ -90,7 +90,7 @@ flowchart TD
 | Manual GitHub Releases update check | Done | `data/update/`, `ui/settings/` |
 | In-app download, checksum/signature verification, Android installer | Done | `data/update/ApkDownloader.kt`, `ApkVerifier.kt`, `ApkInstaller.kt` |
 | Signed release build, stable package/key, versioning | Done | `app/build.gradle.kts`, keystore outside repo |
-| Unit, Room, CSV, update/download, and Compose/Robolectric tests | Done — 116 JVM tests + 7 instrumentation tests | `app/src/test/`, `app/src/androidTest/` |
+| Unit, Room, CSV, update/download, and Compose/Robolectric tests | Done — 120 JVM tests + 7 instrumentation tests | `app/src/test/`, `app/src/androidTest/` |
 | Lint / build | Done — 0 lint errors | `./gradlew lintDebug` |
 | Physical-device visual/performance QA | Pending | Needs a real phone |
 | Automatic update checks | Deferred | Decision needed on privacy/UX |

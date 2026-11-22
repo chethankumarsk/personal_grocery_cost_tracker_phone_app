@@ -9,10 +9,10 @@
 ## 0. Implementation status (30 October 2026)
 
 - v1, categories, category management, monthly category totals, and both update paths are implemented in Kotlin + Jetpack Compose with Room and DataStore.
-- JVM test suite: 116 tests covering domain logic, CSV v1–v3, Room repository behavior, category management/totals/filtering, recent-item chips, price history, budget, unit prices, update parsing/versioning, APK download verification, entry-sheet state, activity launch, settings, and add-entry/calendar UI flows.
+- JVM test suite: 120 tests covering domain logic, CSV v1–v3, Room repository behavior, category management/totals/filtering, recent-item chips, price history, budget, unit prices, update parsing/versioning, APK download verification, entry-sheet state, activity launch, settings, and add-entry/calendar UI flows.
 - Instrumentation tests (5): v1→v2 migration preserves entries, defaults them to Uncategorized, and seeds presets; the APK verifier accepts a correctly signed newer build and rejects same-version, wrong-package, and non-APK files.
 - Debug and signed release APKs build; `lintDebug` reports no errors.
-- Release package: `dev.groceryledger`; version 1.5.1 / versionCode 11; minSdk 26, compile/target SDK 36.
+- Release package: `dev.groceryledger`; version 1.5.2 / versionCode 11; minSdk 26, compile/target SDK 36.
 - Release keystore created outside the repository; the first real install should use the signed release APK.
 - Network is used only for the user-initiated GitHub Releases check and the update APK download the user explicitly starts.
 - LLM/developer context: `AGENTS.md`, `docs/KNOWLEDGE_GRAPH.md`, and the machine-readable `docs/knowledge-graph.json`.
@@ -124,8 +124,8 @@ Priorities use MoSCoW: **Must**, **Should**, **Could**.
   2. Any word in the name starts with the query.
   3. Name contains the query anywhere.
   4. Within the same rank: most-used items first, then most recently purchased.
-- **SUG-3 (Must):** Each suggestion shows the most recent price paid and the date it was paid, e.g. "Milk — ₹60 on 12 Oct".
-- **SUG-4 (Should):** The last price appears as a separate "₹60" chip/button inside the suggestion. Tapping the chip fills the amount field with that price; tapping the name fills only the name and leaves the amount untouched.
+- **SUG-3 (Must):** Each suggestion shows the most recent price paid and the date it was paid, e.g. "Milk — ₹60 on 12 Oct". When that purchase recorded a quantity and unit, its normalized price is appended too, e.g. "Rice — ₹80 on 12 Oct · ₹40/kg". Items without a quantity show no unit price.
+- **SUG-4 (Should):** The last price appears as a separate "Use ₹60" chip/button inside the suggestion. Tapping the chip fills **both** the full item name and the amount field with that price, replacing whatever was typed; tapping the row name fills only the name and leaves the amount untouched.
 - **SUG-5 (Must):** Free text is always allowed; selecting a suggestion is optional and never required.
 - **SUG-6 (Must):** Names that differ only by case or extra spaces are treated as the same item for suggestions. The most recent spelling is displayed.
 - **SUG-7 (Must):** Suggestions work fully offline and respond within 150 ms with 20,000 entries and 5,000 distinct items.
@@ -402,7 +402,7 @@ Calendar (home)
 | S20 | Import a file while entries already exist | New entries merge in; existing entries are untouched |
 | S21 | Import a file with a newer `format_version` | Rejected with an "update the app" message; no data changes |
 | S22 | Tap Check for updates when the latest release is `v1.0.0` and the app is 1.0.0 | "You're up to date" dialog; no install action |
-| S23 | Tap Check for updates when `v1.5.1` is published and the app is 1.4.0 | Update dialog shows 1.5.1 and notes; Download and install verifies and opens Android's installer, and Open release page opens the browser |
+| S23 | Tap Check for updates when `v1.5.2` is published and the app is 1.4.0 | Update dialog shows 1.5.2 and notes; Download and install verifies and opens Android's installer, and Open release page opens the browser |
 | S24 | Tap Check for updates when the repository has no releases | Friendly "No releases yet" dialog |
 | S25 | Tap Check for updates while offline or rate-limited | Friendly failure message with retry/close; no crash |
 | S26 | Open Settings without tapping Check for updates | No network request is made |
@@ -418,7 +418,7 @@ Calendar (home)
 - **A3:** Week and month totals are calendar periods of the selected date, not rolling 7/30-day windows.
 - **A4:** Weeks are Monday–Sunday by default; Sunday–Saturday is available in settings.
 - **A5:** Currency is INR only, with Indian digit grouping.
-- **A6:** v1 records name, amount, and date; categories were added in 1.2.0 and optional quantity/unit in 1.5.1. There is still no store or notes field.
+- **A6:** v1 records name, amount, and date; categories were added in 1.2.0 and optional quantity/unit in 1.5.2. There is still no store or notes field.
 - **A7:** Future-dated entries are not allowed.
 - **A8:** Advertising, accounts, app servers, analytics, and cloud sync are out of scope permanently. The manual GitHub Releases update check and the update download the user starts are the only network features; Android's optional device backup is the only off-device data copy and is disclosed.
 - **A9:** Primary use is a phone in portrait; tablets are supported but not optimized separately.
@@ -456,7 +456,7 @@ Calendar (home)
 | --- | --- |
 | Physical-device visual and performance QA | Pending |
 | Publish the first GitHub release (`v1.1.0` or later) | Done - `v1.5.1` is the latest published release with signed APK |
-| End-to-end in-app update against a published newer release | Partial: verified on the emulator (1.4.0 → 1.5.0 and 1.5.0 → 1.5.1, data intact); the 1.4.0 → 1.5.1 upgrade on a physical device is pending |
+| End-to-end in-app update against a published newer release | Partial: verified on the emulator (1.4.0 → 1.5.0 and 1.5.0 → 1.5.2, data intact); the 1.4.0 → 1.5.2 upgrade on a physical device is pending |
 | Optional Play Store publication | Not planned for v1 |
 
 ## 14. Recommended future enhancements
@@ -536,7 +536,7 @@ When adding a feature or field:
 ## 16. Definition of done (v1)
 
 - All **Must** requirements implemented and verified where device testing is not required.
-- Unit, database, CSV, update, download-verification, and UI tests pass (116 tests); totals, week/month boundaries, suggestion ranking, import dedupe, CSV versioning, category rename/delete/filtering, monthly category totals, recent-item chips, price history, budget, unit prices, update parsing/version comparison, APK checksum/size handling, entry-sheet state, and the UI smoke flows are covered.
+- Unit, database, CSV, update, download-verification, and UI tests pass (120 tests); totals, week/month boundaries, suggestion ranking, import dedupe, CSV versioning, category rename/delete/filtering, monthly category totals, recent-item chips, price history, budget, unit prices, update parsing/version comparison, APK checksum/size handling, entry-sheet state, and the UI smoke flows are covered.
 - `gradlew build` succeeds and Android Lint reports no errors.
 - Room schema JSON is checked in and the v1→v2 migration instrumentation test passes.
 - UI code imports no Room entities; totals/date/formatting logic is unit-tested and independent of Android.
@@ -594,7 +594,7 @@ When adding a feature or field:
 | NFR-6 | Done | minSdk 26; compile/target SDK 36. |
 | NFR-7 | Done | No analytics/ads/servers; manual GitHub check plus user-started APK download; backup disclosed. |
 | NFR-8 | Partial | Selected date survives process death; editor draft survives configuration changes but not process death. |
-| NFR-9 | Done | 116 JVM tests across money, dates, ranking, CSV v1-v3, Room, category filter/totals, recent-item chips, price history, budget, unit prices, shopping list, widget, update/download logic, release-note formatting, large-font layout, entry-sheet state, and Compose UI smoke flows. |
+| NFR-9 | Done | 120 JVM tests across money, dates, ranking, CSV v1-v3, Room, category filter/totals, recent-item chips, price history, budget, unit prices, shopping list, widget, update/download logic, release-note formatting, large-font layout, entry-sheet state, and Compose UI smoke flows. |
 | NFR-10 | Done | Release APK ~8 MB; debug under 20 MB. |
 | NFR-11 | Done | Migration policy and exported schemas in place; v2 migration and its instrumentation test pass. |
 
@@ -633,7 +633,7 @@ When adding a feature or field:
 | S12 | Partial | Future-date/next-arrow logic; manual check. |
 | S13 | Partial | ViewModel state retention; rotation manual. |
 | S14 | Done | CSV writer/parser tests; file-picker UI manual. |
-| S15 | Partial | 200% font pass on the emulator; the budget card, shopping list fields and month title were fixed in 1.5.1. Physical-device check pending. |
+| S15 | Partial | 200% font pass on the emulator; the budget card, shopping list fields and month title were fixed in 1.5.2. Physical-device check pending. |
 | S16 | Partial | 19,697-entry import on the emulator: cold start 1.7 s vs 1.2 s empty, frame times unchanged. Physical-device check pending. |
 | S17 | Done | CSV round-trip + repository import/rebuild tests. |
 | S18 | Done | CSV duplicate test. |

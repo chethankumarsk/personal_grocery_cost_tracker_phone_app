@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.2 — 22 November 2026
+
+- Fixes the **Use ₹…** chip in the autocomplete list: it now fills the full item name as well as the price, instead of leaving the half-typed text in the name field.
+- The **Previous items** list now shows the last unit price too (e.g. `· ₹40/kg`) when that purchase recorded a quantity and unit; items without a quantity look the same as before.
+- Adds regression tests for both behaviours, and makes the day-sheet UI tests tap by semantics so they no longer depend on where the floating **Add item** button sits that month (120 JVM tests total).
+
 ## 1.5.1 — 3 November 2026
 
 - Fixes the budget card at 200% font: the amount used to sit on top of "Monthly budget"; it now moves below the month instead of colliding.

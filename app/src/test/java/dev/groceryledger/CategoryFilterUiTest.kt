@@ -1,6 +1,7 @@
 package dev.groceryledger
 
 import android.content.Context
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
@@ -8,6 +9,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.test.core.app.ApplicationProvider
 import dev.groceryledger.domain.date.DateRanges
 import dev.groceryledger.domain.money.Money
@@ -107,7 +109,10 @@ class CategoryFilterUiTest {
                 .fetchSemanticsNodes()
                 .isNotEmpty()
         }
-        composeRule.onNodeWithContentDescription(description).performClick()
+        // Invoke the click through semantics: a coordinate tap can land on the floating
+        // "Add item" button when the day sits behind it.
+        composeRule.onNodeWithContentDescription(description)
+            .performSemanticsAction(SemanticsActions.OnClick)
         composeRule.waitForIdle()
     }
 }
