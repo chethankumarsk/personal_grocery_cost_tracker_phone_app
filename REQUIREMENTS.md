@@ -16,7 +16,7 @@
 - Release keystore created outside the repository; the first real install should use the signed release APK.
 - Network is used only for the user-initiated GitHub Releases check and the update APK download the user explicitly starts.
 - LLM/developer context: `AGENTS.md`, `docs/KNOWLEDGE_GRAPH.md`, and the machine-readable `docs/knowledge-graph.json`.
-- GitHub release **v1.5.1** is the latest published release; the update checker resolves it. The 1.4.0 → 1.5.1 upgrade still needs a physical-device pass.
+- GitHub release **v1.5.2** is the latest published release; the update checker resolves it. The 1.4.0 → 1.5.2 upgrade still needs a physical-device pass.
 - Remaining: manual visual/performance QA on a physical Android phone and an end-to-end in-app update test against a published newer release.
 
 ---
@@ -455,7 +455,7 @@ Calendar (home)
 | Item | Status |
 | --- | --- |
 | Physical-device visual and performance QA | Pending |
-| Publish the first GitHub release (`v1.1.0` or later) | Done - `v1.5.1` is the latest published release with signed APK |
+| Publish the first GitHub release (`v1.1.0` or later) | Done - `v1.5.2` is the latest published release with signed APK |
 | End-to-end in-app update against a published newer release | Partial: verified on the emulator (1.4.0 → 1.5.0 and 1.5.0 → 1.5.2, data intact); the 1.4.0 → 1.5.2 upgrade on a physical device is pending |
 | Optional Play Store publication | Not planned for v1 |
 
@@ -675,5 +675,5 @@ Build verification: `testDebugUnitTest` passes, `lintDebug` reports 0 errors, an
 ### 17.6 Remaining work
 
 1. Manual device QA: visual layout, TalkBack, 200% font, performance, install-over-update, and the in-app permission/installer dialogs.
-2. ~~Publish the first GitHub release with the signed APK~~ - done: `v1.5.1` is the latest published release. Next: verify the 1.4.0 → 1.5.1 upgrade with **Download and install**.
+2. ~~Publish the first GitHub release with the signed APK~~ - done: `v1.5.2` is the latest published release. Next: verify the 1.4.0 → 1.5.2 upgrade with **Download and install**.
 3. Optional: automatic update checks, spend-intensity shading.

@@ -11,7 +11,7 @@ This is the map for LLM sessions and humans joining the project. It complements 
 
 Last updated: 3 November 2026.
 
-Current release: **1.5.1** (versionCode 12), published on GitHub. 1.5.2 fixes the autocomplete Use-price chip (it now fills the item name too) and shows unit prices in Previous items. The verified in-app update path is live, so the next device step is confirming 1.4.0 → 1.5.1.
+Current release: **1.5.2** (versionCode 13), published on GitHub. It fixes the autocomplete Use-price chip (it now fills the item name too) and shows unit prices in Previous items. The verified in-app update path is live, so the next device step is confirming 1.4.0 → 1.5.2 on the phone.
 
 ## How to use it in a new session
 
